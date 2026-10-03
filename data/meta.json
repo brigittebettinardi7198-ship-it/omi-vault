@@ -1,0 +1,99 @@
+{
+ "generated": "2026-10-03 01:19",
+ "tz": "America/Chicago",
+ "counties": {
+  "cook": {
+   "refreshed": "2026-10-03 00:11",
+   "raw": 26722,
+   "kept": 24587
+  },
+  "dupage": {
+   "refreshed": "2026-10-02 23:22",
+   "raw": 5511,
+   "kept": 4838
+  },
+  "lake": {
+   "refreshed": "2026-10-02 23:22",
+   "raw": 2926,
+   "kept": 2247
+  },
+  "mchenry": {
+   "refreshed": "2026-10-02 23:22",
+   "raw": 2979,
+   "kept": 2705
+  },
+  "kane": {
+   "refreshed": "2026-10-03 00:22",
+   "raw": 2919,
+   "kept": 2856
+  },
+  "will": {
+   "refreshed": "2026-10-03 00:19",
+   "raw": 736,
+   "kept": 650
+  }
+ },
+ "changes": 0,
+ "sources": {
+  "ptax": {
+   "name": "IL Dept of Revenue PTAX-203 transfer declarations (industrial use)",
+   "rows": 9520,
+   "latest_recorded": "2026-09-25",
+   "fetched": "2026-10-03"
+  },
+  "permits": {
+   "name": "Cook County Assessor building permits (non-residential, >= $50k, last 3 yrs)",
+   "rows": 15796,
+   "fetched": "2026-10-03"
+  },
+  "tdel": {
+   "name": "Cook County Clerk 20-year delinquent property tax file",
+   "asof": "2025-05-01",
+   "rows": 132012,
+   "fetched": "2026-10-03"
+  },
+  "sba": {
+   "name": "SBA 504 loan FOIA data (active loans)",
+   "asof": "2026-06-30",
+   "rows": 2525,
+   "fetched": "2026-10-03"
+  },
+  "fmcsa": {
+   "name": "FMCSA active motor carrier census (3+ power units)",
+   "rows": 9812,
+   "fetched": "2026-10-03"
+  },
+  "warn": {
+   "name": "Illinois WARN notices (IL Dept of Commerce, monthly reports)",
+   "files": 12,
+   "rows": 93,
+   "fetched": "2026-10-03"
+  },
+  "chi_permits": {
+   "name": "City of Chicago building permits (>= $50k reported cost, plus all wrecking/demolition), last 3 yrs",
+   "rows": 20690,
+   "fetched": "2026-10-03"
+  },
+  "cook_val": {
+   "name": "Cook County Assessor commercial valuation, industrial (assessor's assumed rent, vacancy, cap rate; estimates, not leases)",
+   "rows": 4554,
+   "fetched": "2026-10-03"
+  },
+  "proximity": {
+   "name": "Cook County Assessor parcel proximity (nearest rail line, highway and its daily traffic)",
+   "year": "2025",
+   "fetched": "2026-10-03"
+  },
+  "appeals": {
+   "name": "Cook County Assessor appeals (industrial/commercial classes, last 3 yrs)",
+   "rows": 56919,
+   "fetched": "2026-10-03"
+  },
+  "flood": {
+   "name": "FEMA National Flood Hazard Layer, Special Flood Hazard Areas at the parcel's center point (each hit re-checked against FEMA's live point query)",
+   "rows": 20593,
+   "fetched": "2026-10-03",
+   "confirmed": 925
+  }
+ }
+}
