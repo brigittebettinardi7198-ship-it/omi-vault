@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Private</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+body{margin:0;font:16px/1.4 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:#0b1018;color:#e3e9f1;display:flex;min-height:100vh;align-items:center;justify-content:center}
+#lk{width:min(360px,90vw);background:#121a26;border:1px solid #243246;border-radius:12px;padding:24px}
+#lk h1{font-size:20px;margin:0 0 14px}#lk input[type=password]{width:100%;box-sizing:border-box;font-size:16px;padding:12px;border-radius:8px;border:1px solid #243246;background:#0b1018;color:#e3e9f1}
+#lk button{width:100%;margin-top:12px;padding:12px;font-size:16px;font-weight:600;border:0;border-radius:8px;background:#3b82f6;color:#fff;cursor:pointer}
+#lk label{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px;color:#aeb9c8}#msg{min-height:20px;margin-top:10px;font-size:14px;color:#f0605b}
+</style>
+</head>
+<body>
+<form id="lk" autocomplete="on"><h1>🔒 Private</h1>
+<input type="text" name="username" value="omi" autocomplete="username" hidden>
+<input id="pw" type="password" placeholder="Password" autocomplete="current-password" required autofocus>
+<label><input id="rm" type="checkbox"> Remember on this device</label>
+<button id="go" type="submit">Unlock</button><div id="msg" role="alert"></div></form>
+<script>
+(function () {
+  var SALT = Uint8Array.from(atob('mzPOuhtsWgjWgpANfpmLEg=='), function (c) { return c.charCodeAt(0); }), ITER = 600000, KS = 'omi_enc_key', $ = function (id) { return document.getElementById(id); };
+  if (/[?&]lock\b/.test(location.search)) localStorage.removeItem(KS);
+  function derive(pw) {
+    return crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']).then(function (km) {
+      return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: SALT, iterations: ITER, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, true, ['decrypt']); });
+  }
+  function dec(key, buf) {
+    return crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(0, 12) }, key, buf.slice(12)).then(function (pt) {
+      return new Response(new Blob([pt]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer(); });
+  }
+  var app = fetch('app.enc', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('app missing'); return r.arrayBuffer(); });
+  function boot(key, remember) {
+    return app.then(function (buf) { return dec(key, buf); }).then(function (pt) {
+      var F = JSON.parse(new TextDecoder().decode(pt));
+      if (remember) crypto.subtle.exportKey('raw', key).then(function (raw) { localStorage.setItem(KS, btoa(String.fromCharCode.apply(null, new Uint8Array(raw)))); });
+      var ofetch = window.fetch.bind(window);
+      window.fetch = function (input, init) {   // data/*.json requests are served by decrypting data/*.enc
+        var u = new URL(typeof input === 'string' ? input : input.url, location.href), m = u.origin === location.origin && u.pathname.match(/\/data\/([\w-]+)\.json$/);
+        if (!m) return ofetch(input, init);
+        return ofetch('data/' + m[1] + '.enc', { cache: (init && init.cache) || 'default' }).then(function (r) {
+          if (!r.ok) return new Response('', { status: r.status });
+          return r.arrayBuffer().then(function (b) { return dec(key, b); }).then(function (d) { return new Response(d, { status: 200, headers: { 'content-type': 'application/json' } }); });
+        });
+      };
+      var blob = function (t, type) { return URL.createObjectURL(new Blob([t], { type: type })); };
+      window.__omiBlob = { 'vendor/papaparse.min.js': blob(F['vendor/papaparse.min.js'], 'text/javascript'), 'vendor/xlsx.full.min.js': blob(F['vendor/xlsx.full.min.js'], 'text/javascript') };
+      document.title = F.title; document.documentElement.dataset.theme = localStorage.getItem('omi_theme') || 'dark';
+      [F['leaflet.css'], F['app.css']].forEach(function (c) { var s = document.createElement('style'); s.textContent = c; document.head.appendChild(s); });
+      document.querySelectorAll('body > style, head > style:first-of-type').length;
+      document.body.innerHTML = ''; document.body.removeAttribute('style'); document.getElementById && null;
+      var base = document.querySelector('head style'); if (base && /#lk/.test(base.textContent)) base.remove();
+      return new Promise(function (res) { var l = document.createElement('script'); l.src = blob(F['leaflet.js'], 'text/javascript'); l.onload = l.onerror = res; document.head.appendChild(l); })
+        .then(function () { var s = document.createElement('script'); s.type = 'module'; s.src = blob(F['app.js'], 'text/javascript'); document.head.appendChild(s); });
+    });
+  }
+  var saved = localStorage.getItem(KS);
+  if (saved) {
+    $('msg').style.color = '#aeb9c8'; $('msg').textContent = 'Unlocking…';
+    crypto.subtle.importKey('raw', Uint8Array.from(atob(saved), function (c) { return c.charCodeAt(0); }), { name: 'AES-GCM' }, true, ['decrypt'])
+      .then(function (k) { return boot(k, false); }).catch(function () { localStorage.removeItem(KS); $('msg').textContent = ''; });
+  }
+  $('lk').onsubmit = function (e) {
+    e.preventDefault(); $('go').disabled = true; $('msg').style.color = '#aeb9c8'; $('msg').textContent = 'Checking…';
+    derive($('pw').value).then(function (k) { return boot(k, $('rm').checked); })
+      .catch(function (err) { $('go').disabled = false; $('msg').style.color = '#f0605b'; $('msg').textContent = err && err.name === 'OperationError' ? 'Wrong password.' : 'Could not unlock: ' + (err && err.message || err); });
+  };
+})();
+</script>
+</body>
+</html>
