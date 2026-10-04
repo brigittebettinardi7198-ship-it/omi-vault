@@ -3,7 +3,7 @@ import { nc } from './extras.js';
 // Plain English -> criteria (editable chips) -> the existing matching + off-market scoring engine -> ranked properties / owners.
 import { $, $$, esc, fmt, kmoney, uid, toast, scorePill, toCSV, download, today, daysBetween } from './util.js';
 import { S, val, save, OPT } from './store.js';
-import { matchOne, scoreOf, deal, freshFor } from './scoring.js';
+import { matchOne, scoreOf, deal, freshFor, sfOf } from './scoring.js';
 import { table, modal, scoreLegend } from './ui.js';
 import { MARKET } from './markets.js';
 import { lstatBadge, lstatMatch, LSF } from './lstat.js';
@@ -167,12 +167,13 @@ function extra(p, c, R) {   // criteria the requirement matcher doesn't cover; r
 // Forgiving fit: 2 = inside range, 1 = within tolerance, 0 = blank in public data (kept, ranked lower), -1 = known and outside
 const fit = (v, lo, hi, tol) => !v ? 0 : (!lo || v >= lo) && (!hi || v <= hi) ? 2 : (!lo || v >= lo * (1 - tol)) && (!hi || v <= hi * (1 + tol)) ? 1 : -1;
 function softMatch(p, c, o) {
-  const R = [], sf = +val(p, 'bldgSf') || 0, ac = (+val(p, 'landSf') || 0) / 43560, land = c.intent === 'Land';
+  const R = [], SO = sfOf(p), sf = SO.sf, ac = (+val(p, 'landSf') || 0) / 43560, land = c.intent === 'Land';
   let s = 5, exact = true;
   if (!land && (c.sfMin || c.sfMax)) {
     if (!sf && p.vac) return null;   // known vacant land: no building at all
-    const f = fit(sf, c.sfMin, c.sfMax, o.tol); if (f < 0) return null; s += [8, 20, 35][f]; if (f < 2) exact = false;
-    R.push(f === 2 ? `Size fits: ${fmt(sf)} SF` : f === 1 ? `Size close: ${fmt(sf)} SF` : 'Building SF not in public record – verify');
+    const f = fit(sf, c.sfMin, c.sfMax, o.tol); if (f < 0) return null; s += [8, 20, 35][f] - (SO.est && f ? 4 : 0); if (f < 2) exact = false;   // official SF ranks slightly above the footprint estimate
+    const lab = SO.est ? `est. ${fmt(sf)} SF (roof footprint)` : `${fmt(sf)} SF`;
+    R.push(f === 2 ? `Size fits: ${lab}` : f === 1 ? `Size close: ${lab}` : 'Building SF not in public record – verify');
   } else s += land ? (p.vac ? 35 : 15) : 20;
   if (land && p.vac) R.push('Vacant / land parcel');
   if (c.acMin || c.acMax) {
@@ -196,7 +197,7 @@ function pass(c, o) {
     const R = []; if (!extra(p, c, R)) continue;
     const om = scoreOf(p).score, d = deal(p); let rank, ms = null, exact = true;
     if (sellers) {
-      const f1 = (c.sfMin || c.sfMax) ? fit(d.sf, c.sfMin, c.sfMax, o.tol) : 2, f2 = (c.acMin || c.acMax) ? fit(d.acres, c.acMin, c.acMax, o.acTol) : 2;
+      const f1 = (c.sfMin || c.sfMax) ? fit(sfOf(p).sf, c.sfMin, c.sfMax, o.tol) : 2, f2 = (c.acMin || c.acMax) ? fit(d.acres, c.acMin, c.acMax, o.acTol) : 2;
       if (f1 < 0 || f2 < 0) continue;
       if (c.yearMin) { const yb = +val(p, 'yearBuilt'); if (yb && yb < c.yearMin && !o.loose) continue; if (!yb) exact = false; }
       if (c.budgetMax && d.value > c.budgetMax * 1.2 && !o.loose) continue;
@@ -258,7 +259,7 @@ function renderResults(box, c, el) {
   table($('#askt', box), res, [
     { k: 'rank', l: 'Rank', h: x => scorePill(x.rank), v: x => x.rank },
     { k: 'a', l: 'Property', h: x => `<a href="#/property/${x.p.id}">${esc(nc(val(x.p, 'address') || x.p.pin))}</a>${lstatBadge(x.p)}<div class="xs muted">${esc(nc(val(x.p, 'city') || ''))} · ${esc(x.p.co || '')}</div>`, v: x => val(x.p, 'address') },
-    { k: 'sz', l: 'Size', h: x => x.d.sf ? fmt(x.d.sf) + ' SF' : x.d.acres ? x.d.acres.toFixed(1) + ' ac' : '–', v: x => x.d.sf || x.d.acres * 43560 },
+    { k: 'sz', l: 'Size', h: x => { const so = sfOf(x.p); return so.sf ? fmt(so.sf) + ' SF' + (so.est ? ' <span class="tag est">est.</span>' : '') : x.d.acres ? x.d.acres.toFixed(1) + ' ac' : '–'; }, v: x => sfOf(x.p).sf || x.d.acres * 43560 },
     { k: 'v', l: 'Est. value', h: x => kmoney(x.d.value) || '–', v: x => x.d.value },
     { k: 'om', l: 'Off-mkt', h: x => scorePill(x.om), v: x => x.om },
     ...(sellers ? [] : [{ k: 'ms', l: 'Match', h: x => scorePill(x.ms), v: x => x.ms }]),

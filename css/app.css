@@ -590,3 +590,5 @@ details.sect{border:0;box-shadow:var(--shadow);border-radius:var(--r);background
 .lsb{display:inline-block;font-size:11px;line-height:1.5;padding:0 6px;border-radius:9px;margin-left:4px;border:1px solid #cbd5e1;color:#334155;background:#f8fafc;white-space:nowrap;vertical-align:middle;font-weight:600}
 .lsb.ls-sale{border-color:#16a34a;color:#166534;background:#f0fdf4}.lsb.ls-lease{border-color:#2563eb;color:#1e40af;background:#eff6ff}.lsb.ls-both{border-color:#7c3aed;color:#5b21b6;background:#f5f3ff}.lsb.ls-off{border-color:#94a3b8;color:#475569}
 .lsctl{margin:10px 0 6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.lsctl select{min-width:150px}
+
+.tag.est{font-size:10px;padding:0 4px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-weight:600;vertical-align:middle}

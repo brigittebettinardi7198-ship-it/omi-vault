@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-03 20:54",
+ "generated": "2026-10-03 21:23",
  "tz": "America/Chicago",
  "counties": {
   "cook": {
@@ -105,5 +105,11 @@
    "fetched": "2026-10-03",
    "confirmed": 925
   }
+ },
+ "footprints": {
+  "source": "Microsoft Global ML Building Footprints (ODbL), tiles 2026-02-03",
+  "field": "est_bldg_sf",
+  "min_building_sf": 1000,
+  "method": "roof footprints assigned to nearest industrial parcel point within an acreage-bounded radius"
  }
 }

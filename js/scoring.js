@@ -279,6 +279,9 @@ export function dealInfo(p) {
   return { sf, acres, value, kind, commission, big, size };
 }
 let dcache = { v: -1, m: new Map() };
+// Building SF for matching/filtering: official assessor SF when present, else the roof-footprint estimate (est_bldg_sf, source: footprint)
+export const sfOf = p => { const o = +val(p, 'bldgSf') || 0; return o ? { sf: o, est: false } : +p.est_bldg_sf ? { sf: +p.est_bldg_sf, est: true } : { sf: 0, est: false }; };
+export const ESTTAG = '<span class="tag est" title="Estimated: measured from Microsoft building roof footprints (free, ODbL). Not an official figure.">est.</span>';
 export function deal(p) { if (dcache.v !== S.version) dcache = { v: S.version, m: new Map() }; let d = dcache.m.get(p.id); if (!d) { d = dealInfo(p); dcache.m.set(p.id, d); } return d; }
 // Deal priority: off-market likelihood blended with deal size (weight adjustable)
 export const sizeWeight = () => setting('sizeWeight', 35) / 100;
