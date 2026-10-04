@@ -4,7 +4,7 @@ const digits = s => String(s || '').replace(/\D/g, '');
 export const MARKETS = {
   chicagoland: {
     id: 'chicagoland', name: 'Chicagoland Industrial', center: [41.88, -87.85], zoom: 9,
-    dataFiles: ['cook', 'dupage', 'lake', 'mchenry', 'kane', 'will'],
+    dataFiles: ['cook', 'dupage', 'lake', 'mchenry', 'kane', 'will', 'kendall', 'grundy'],
     sos: { name: 'IL Secretary of State business search', url: () => 'https://apps.ilsos.gov/businessentitysearch/' },
     counties: {
       Cook: {
@@ -48,6 +48,20 @@ export const MARKETS = {
         treasurer: () => 'https://www.willcountytreasurer.com/',
         recorder: () => 'https://www.willcountyrecorder.org/',
         gis: () => 'https://gis.willcountyillinois.com/portal/apps/webappviewer/index.html',
+      },
+      Kendall: {
+        source: 'Kendall County GIS parcel fabric (assessor class, owner, assessed values)',
+        assessor: () => 'https://www.kendallcountyil.gov/offices/supervisor-of-assessments',
+        treasurer: () => 'https://www.kendallcountyil.gov/offices/treasurer',
+        recorder: () => 'https://www.kendallcountyil.gov/offices/county-clerk-recorder',
+        gis: () => 'https://maps.co.kendall.il.us/',
+      },
+      Grundy: {
+        source: 'Grundy County Assessment GIS (property class, tax name, assessed values)',
+        assessor: () => 'https://www.grundycountyil.gov/assessment',
+        treasurer: () => 'https://www.grundycountyil.gov/treasurer',
+        recorder: () => 'https://www.grundycountyil.gov/county-clerk-recorder',
+        gis: () => 'https://maps.grundyco.org/',
       },
     },
     // Lead time before lease expiration to start outreach (months), by building size

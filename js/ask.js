@@ -30,7 +30,7 @@ export const AREAS = {
   'Fox Valley': [/\bfox (valley|river)\b/, ['Aurora', 'Batavia', 'Geneva', 'St Charles', 'Elgin', 'North Aurora', 'Montgomery', 'South Elgin', 'Carpentersville']],
   'West suburbs': [/\bwest(ern)? suburbs?\b/, ['Franklin Park', 'Melrose Park', 'Northlake', 'Bensenville', 'Addison', 'Elmhurst', 'Bellwood', 'Broadview', 'Hillside', 'Berkeley', 'Stone Park']],
 };
-const COUNTY_RE = { Cook: /\bcook\b/, DuPage: /\bdu\s?page\b/, Lake: /\blake (county|co\.?)\b/, McHenry: /\bmc\s?henry\b/, Kane: /\bkane\b/, Will: /\bwill (county|co\.?)\b/ };
+const COUNTY_RE = { Cook: /\bcook\b/, DuPage: /\bdu\s?page\b/, Lake: /\blake (county|co\.?)\b/, McHenry: /\bmc\s?henry\b/, Kane: /\bkane\b/, Will: /\bwill (county|co\.?)\b/, Kendall: /\bkendall\b/, Grundy: /\bgrundy\b/ };
 const TYPES = [['Warehouse / distribution', /\b(warehouse|distribution|logistics|fulfillment)\b/], ['Manufacturing', /\b(manufacturing|plant|factory)\b(?! clos)/], ['Flex / light industrial', /\b(flex|light industrial)\b/],
   ['Truck terminal', /\b(truck terminal|cross[- ]?dock)\b/], ['Outdoor storage (IOS)', /\b(ios|outdoor storage|truck parking|trailer parking|storage yard|contractor yard)\b/], ['Cold storage', /\b(cold storage|freezer|cooler)\b/]];
 const STOP_TOWNS = new Set(['golf', 'summit', 'justice', 'wayne', 'lily lake', 'virgil', 'burlington', 'hometown']);

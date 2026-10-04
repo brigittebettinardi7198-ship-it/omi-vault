@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-03 01:19",
+ "generated": "2026-10-03 20:54",
  "tz": "America/Chicago",
  "counties": {
   "cook": {
@@ -31,6 +31,16 @@
    "refreshed": "2026-10-03 00:19",
    "raw": 736,
    "kept": 650
+  },
+  "kendall": {
+   "refreshed": "2026-10-03 20:54",
+   "raw": 197,
+   "kept": 144
+  },
+  "grundy": {
+   "refreshed": "2026-10-03 20:54",
+   "raw": 362,
+   "kept": 190
   }
  },
  "changes": 0,
