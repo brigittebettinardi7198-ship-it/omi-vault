@@ -21,15 +21,20 @@ export const EXAMPLES = [
 export const AREAS = {
   "O'Hare": [/o\s*'?\s*hare|ohare/, ['Elk Grove Village', 'Bensenville', 'Wood Dale', 'Franklin Park', 'Itasca', 'Des Plaines', 'Schiller Park', 'Rosemont', 'Northlake', 'Addison', 'Mount Prospect']],
   'Midway': [/\bmidway\b/, ['Bedford Park', 'Bridgeview', 'Summit', 'Burbank', 'Forest View', 'Chicago']],
-  'I-55 corridor': [/\bi[- ]?55\b|\b55 corridor/, ['Bolingbrook', 'Romeoville', 'Joliet', 'Woodridge', 'Lemont', 'Willowbrook', 'Hodgkins', 'Mccook', 'Countryside', 'Channahon', 'Minooka', 'Plainfield', 'Elwood', 'Bedford Park']],
-  'I-80 corridor': [/\bi[- ]?80\b/, ['Joliet', 'New Lenox', 'Mokena', 'Tinley Park', 'Frankfort', 'Minooka', 'Channahon', 'Matteson', 'Lansing', 'Hazel Crest']],
-  'I-88 corridor': [/\bi[- ]?88\b/, ['Aurora', 'Naperville', 'Lisle', 'Downers Grove', 'Oak Brook', 'Batavia', 'North Aurora', 'Montgomery', 'Warrenville']],
-  'I-90 / Northwest': [/\bi[- ]?90\b|\bnorthwest suburbs?\b/, ['Elgin', 'Hoffman Estates', 'Schaumburg', 'Rolling Meadows', 'Arlington Heights', 'Huntley', 'Hampshire', 'Elk Grove Village', 'East Dundee', 'Gilberts']],
-  'I-94 / North': [/\bi[- ]?94\b|\bnorth shore\b/, ['Waukegan', 'Gurnee', 'Libertyville', 'Vernon Hills', 'Mundelein', 'Lake Bluff', 'North Chicago', 'Northbrook', 'Deerfield', 'Lincolnshire', 'Wheeling', 'Buffalo Grove', 'Lake Forest']],
+  'I-55 corridor': [/\b(?:i|interstate|route)[- ]?55\b|\b55 corridor|stevenson/, ['Bolingbrook', 'Romeoville', 'Joliet', 'Woodridge', 'Lemont', 'Willowbrook', 'Burr Ridge', 'Darien', 'Hodgkins', 'Mccook', 'Countryside', 'Channahon', 'Minooka', 'Plainfield', 'Shorewood', 'Elwood', 'Bedford Park', 'Summit', 'Lyons', 'Forest View']],
+  'I-80 corridor': [/\b(?:i|interstate)[- ]?80\b/, ['Joliet', 'New Lenox', 'Mokena', 'Tinley Park', 'Frankfort', 'Minooka', 'Channahon', 'Matteson', 'Lansing', 'Hazel Crest']],
+  'I-88 corridor': [/\b(?:i|interstate)[- ]?88\b|reagan (tollway|expressway)/, ['Aurora', 'Naperville', 'Lisle', 'Downers Grove', 'Oak Brook', 'Batavia', 'North Aurora', 'Montgomery', 'Warrenville']],
+  'I-90 / Northwest': [/\b(?:i|interstate)[- ]?90\b|jane addams|\bnorthwest suburbs?\b/, ['Elgin', 'Hoffman Estates', 'Schaumburg', 'Rolling Meadows', 'Arlington Heights', 'Huntley', 'Hampshire', 'Elk Grove Village', 'East Dundee', 'Gilberts']],
+  'I-294 / Tri-State': [/\b(?:i|interstate)[- ]?294\b|\btri[- ]?state\b/, ['Rosemont', 'Des Plaines', 'Schiller Park', 'Franklin Park', 'Northlake', 'Bensenville', 'Elmhurst', 'Hillside', 'Westchester', 'Hodgkins', 'Willow Springs', 'Bridgeview', 'Oak Lawn', 'Alsip', 'Harvey', 'South Holland', 'Niles', 'Northbrook']],
+  'I-355 corridor': [/\b(?:i|interstate)[- ]?355\b|veterans memorial tollway/, ['Addison', 'Itasca', 'Glendale Heights', 'Lombard', 'Downers Grove', 'Woodridge', 'Bolingbrook', 'Lemont', 'Lockport', 'Homer Glen', 'Romeoville', 'New Lenox']],
+  'I-57 corridor': [/\b(?:i|interstate)[- ]?57\b/, ['Alsip', 'Blue Island', 'Markham', 'Harvey', 'Hazel Crest', 'Country Club Hills', 'Oak Forest', 'Tinley Park', 'Matteson', 'University Park', 'Monee', 'Peotone', 'Chicago Heights']],
+  'I-94 / North': [/\b(?:i|interstate)[- ]?94\b|edens|\bnorth shore\b/, ['Waukegan', 'Gurnee', 'Libertyville', 'Vernon Hills', 'Mundelein', 'Lake Bluff', 'North Chicago', 'Northbrook', 'Deerfield', 'Lincolnshire', 'Wheeling', 'Buffalo Grove', 'Lake Forest']],
   'South suburbs': [/\bsouth suburbs?\b|\bsouthland\b/, ['Chicago Heights', 'Harvey', 'Lansing', 'Alsip', 'Blue Island', 'Calumet City', 'South Holland', 'Markham', 'Tinley Park', 'University Park', 'Matteson']],
   'Fox Valley': [/\bfox (valley|river)\b/, ['Aurora', 'Batavia', 'Geneva', 'St Charles', 'Elgin', 'North Aurora', 'Montgomery', 'South Elgin', 'Carpentersville']],
   'West suburbs': [/\bwest(ern)? suburbs?\b/, ['Franklin Park', 'Melrose Park', 'Northlake', 'Bensenville', 'Addison', 'Elmhurst', 'Bellwood', 'Broadview', 'Hillside', 'Berkeley', 'Stone Park']],
 };
+// Counties each corridor actually runs through (used only when the town list has to be relaxed)
+const AREA_COUNTIES = { "O'Hare": ['Cook', 'DuPage'], Midway: ['Cook'], 'I-55 corridor': ['Cook', 'DuPage', 'Will', 'Grundy'], 'I-80 corridor': ['Cook', 'Will', 'Grundy'], 'I-88 corridor': ['DuPage', 'Kane', 'Cook'], 'I-90 / Northwest': ['Cook', 'Kane', 'McHenry'], 'I-294 / Tri-State': ['Cook', 'DuPage'], 'I-355 corridor': ['DuPage', 'Will', 'Cook'], 'I-57 corridor': ['Cook', 'Will'], 'I-94 / North': ['Lake', 'Cook'], 'South suburbs': ['Cook', 'Will'], 'Fox Valley': ['Kane', 'DuPage', 'Kendall'], 'West suburbs': ['Cook', 'DuPage'] };
 const COUNTY_RE = { Cook: /\bcook\b/, DuPage: /\bdu\s?page\b/, Lake: /\blake (county|co\.?)\b/, McHenry: /\bmc\s?henry\b/, Kane: /\bkane\b/, Will: /\bwill (county|co\.?)\b/, Kendall: /\bkendall\b/, Grundy: /\bgrundy\b/ };
 const TYPES = [['Warehouse / distribution', /\b(warehouse|distribution|logistics|fulfillment)\b/], ['Manufacturing', /\b(manufacturing|plant|factory)\b(?! clos)/], ['Flex / light industrial', /\b(flex|light industrial)\b/],
   ['Truck terminal', /\b(truck terminal|cross[- ]?dock)\b/], ['Outdoor storage (IOS)', /\b(ios|outdoor storage|truck parking|trailer parking|storage yard|contractor yard)\b/], ['Cold storage', /\b(cold storage|freezer|cooler)\b/]];
@@ -40,12 +45,12 @@ function towns() {
   if (TOWNS && TOWNS.v === S.props.length) return TOWNS.list;
   const set = new Map();
   for (const p of S.props) for (const t of [val(p, 'city'), val(p, 'municipality')]) { if (!t) continue; const T = String(t).trim(); const k = T.toLowerCase(); if (k.length < 4 || /unincorporated/.test(k)) continue; set.set(k, T); const short = k.replace(/\s+(village|vlg|city|township|twp)$/, ''); if (short !== k && short.length >= 4) set.set(short, T); }
-  const list = [...set.entries()].filter(([k]) => !STOP_TOWNS.has(k)).sort((a, b) => b[0].length - a[0].length);
+  const list = [...set.entries()].filter(([k]) => !STOP_TOWNS.has(k) && !/\bcounty\b/.test(k)).sort((a, b) => b[0].length - a[0].length);
   TOWNS = { v: S.props.length, list }; return list;
 }
 // ---------- parser ----------
 export function parseAsk(q) {
-  const c = {}; let t = ' ' + String(q || '').toLowerCase().replace(/[–—]/g, '-').replace(/(\d),(\d{3})/g, '$1$2').replace(/’/g, "'") + ' ';
+  const c = {}; let t = ' ' + String(q || '').toLowerCase().replace(/[–—‑‐−]/g, '-').replace(/(\d),(\d{3})/g, '$1$2').replace(/’/g, "'") + ' ';
   const cut = re => { t = t.replace(re, ' '); };
   // intent
   const sellerW = /\b(sellers?|who (might|would|could|may) sell|likely to sell|off[- ]market owners?|prospects?|owners? (to call|who)|owners?\b)/.test(t);
@@ -77,13 +82,13 @@ export function parseAsk(q) {
   t = t.replace(/(?:built|constructed)\s*(?:after|since|in or after|post|>)\s*(\d{4})|(?:newer than|post[- ])(\d{4})/g, (m, a, b) => { c.yearMin = +(a || b); return ' '; });
   t = t.replace(/(?:built|constructed)\s*(?:before|prior to|pre|<)\s*(\d{4})|(?:older than|pre[- ])(\d{4})/g, (m, a, b) => { c.yearMax = +(a || b); return ' '; });
   // building size
-  t = t.replace(/(\d+(?:\.\d+)?)\s*(k|m)?\s*(?:-|to)\s*(\d+(?:\.\d+)?)\s*(k|m)?\s*(sf|sq\.?\s*ft|square\s*feet|sqft|s\.f\.)?/g, (m, a, sa, b, sb, u) => {
+  t = t.replace(/(\d+(?:\.\d+)?)\s*(k|m)?\s*(?:-|to)\s*(\d+(?:\.\d+)?)\s*(k|m)?\s*(sf|sq\.?\s*f(?:ee)?t\.?|square\s*f(?:ee|oo)t|sqft|s\.f\.)?/g, (m, a, sa, b, sb, u) => {
     if (!u && !sa && !sb) return m; const B = n(b, sb), A = n(a, sa || (sb && +a < +b ? sb : '')); if (B < 1000) return m; c.sfMin = A; c.sfMax = B; return ' '; });
-  t = t.replace(/(at least|min(?:imum)?|over|above|more than|under|below|less than|max(?:imum)?|up to)?\s*(\d+(?:\.\d+)?)\s*(k|m)?\s*(\+)?\s*(sf|sq\.?\s*ft|square\s*feet|sqft|s\.f\.)\b(\s*\+)?/g, (m, w, a, s, plus, u, plus2) => {
+  t = t.replace(/(at least|min(?:imum)?|over|above|more than|under|below|less than|max(?:imum)?|up to)?\s*(\d+(?:\.\d+)?)\s*(k|m)?\s*(\+)?\s*(sf|sq\.?\s*f(?:ee)?t\.?|square\s*f(?:ee|oo)t|sqft|s\.f\.)\b(\s*\+)?/g, (m, w, a, s, plus, u, plus2) => {
     const v = n(a, s); if (v < 1000) return m;
-    if (plus || plus2 || /least|min|over|above|more/.test(w || '')) c.sfMin = v; else if (/under|below|less|max|up to/.test(w || '')) c.sfMax = v; else { c.sfMin = Math.round(v * .8); c.sfMax = Math.round(v * 1.2); }
+    if (plus || plus2 || /least|min|over|above|more/.test(w || '')) c.sfMin = v; else if (/under|below|less|max|up to/.test(w || '')) c.sfMax = v; else { c.sfMin = Math.round(v * .7); c.sfMax = Math.round(v * 1.3); }
     return ' '; });
-  t = t.replace(/(\d+(?:\.\d+)?)\s*k\s*(\+)?(?=\s|,|$)/g, (m, a, plus) => { const v = n(a, 'k'); if (plus) c.sfMin = v; else { c.sfMin = Math.round(v * .8); c.sfMax = Math.round(v * 1.2); } return ' '; });
+  t = t.replace(/(\d+(?:\.\d+)?)\s*k\s*(\+)?(?=\s|,|$)/g, (m, a, plus) => { const v = n(a, 'k'); if (plus) c.sfMin = v; else { c.sfMin = Math.round(v * .7); c.sfMax = Math.round(v * 1.3); } return ' '; });
   // owner traits
   if (/\bout[- ]of[- ]state\b|\boos\b/.test(t)) c.oos = true;
   else if (/\babsentee\b|\bnon[- ]local\b|\bnot local\b/.test(t)) c.absentee = true;
@@ -106,10 +111,10 @@ export function parseAsk(q) {
   if (/\b(land|vacant land|development site|lot|acreage)\b/.test(t) && !c.sfMin && !c.sfMax && c.intent !== 'sellers') c.intent = c.intent === 'Lease' ? 'Lease' : 'Land';
   if (c.type === 'Outdoor storage (IOS)' && !c.sfMin && c.intent && c.intent !== 'sellers' && c.intent !== 'Lease') c.intent = 'Land';
   // places
+  const cos = Object.keys(COUNTY_RE).filter(k => COUNTY_RE[k].test(t)); if (cos.length) c.counties = cos;   // before towns, so "Grundy County" is a county, not a town
   const tw = new Set(), areas = [];
   for (const [name, [re, list]] of Object.entries(AREAS)) if (re.test(t)) { areas.push(name); list.forEach(x => tw.add(x)); t = t.replace(re, ' '); }
   for (const [k, T] of towns()) { const re = new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\bst\.? /, 'st\\.? ') + '\\b'); if (re.test(t)) { tw.add(T); t = t.replace(re, ' '); } }
-  const cos = Object.keys(COUNTY_RE).filter(k => COUNTY_RE[k].test(t)); if (cos.length) c.counties = cos;
   if (tw.size) c.towns = [...tw]; if (areas.length) c.areas = areas;
   if (!c.intent) c.intent = (c.holdMin || c.ownerTypes || c.oos || c.absentee || c.warn || c.tdel || c.sba) ? 'sellers' : (c.sfMin || c.sfMax || c.clearMin || c.docksMin) ? 'Buy (owner-user)' : 'sellers';
   return c;
@@ -157,28 +162,69 @@ function extra(p, c, R) {   // criteria the requirement matcher doesn't cover; r
   if (c.psfMax) { const d = deal(p); const v = +val(p, 'askingPrice') || d.value; if (d.sf && v && v / d.sf > c.psfMax * 1.15) return false; if (d.sf && v) R.push(`≈$${Math.round(v / d.sf)}/SF (${val(p, 'askingPrice') ? 'asking' : 'est.'})`); }
   return true;
 }
-export function runAsk(c, limit = 150) {
+// Forgiving fit: 2 = inside range, 1 = within tolerance, 0 = blank in public data (kept, ranked lower), -1 = known and outside
+const fit = (v, lo, hi, tol) => !v ? 0 : (!lo || v >= lo) && (!hi || v <= hi) ? 2 : (!lo || v >= lo * (1 - tol)) && (!hi || v <= hi * (1 + tol)) ? 1 : -1;
+function softMatch(p, c, o) {
+  const R = [], sf = +val(p, 'bldgSf') || 0, ac = (+val(p, 'landSf') || 0) / 43560, land = c.intent === 'Land';
+  let s = 5, exact = true;
+  if (!land && (c.sfMin || c.sfMax)) {
+    if (!sf && p.vac) return null;   // known vacant land: no building at all
+    const f = fit(sf, c.sfMin, c.sfMax, o.tol); if (f < 0) return null; s += [8, 20, 35][f]; if (f < 2) exact = false;
+    R.push(f === 2 ? `Size fits: ${fmt(sf)} SF` : f === 1 ? `Size close: ${fmt(sf)} SF` : 'Building SF not in public record – verify');
+  } else s += land ? (p.vac ? 35 : 15) : 20;
+  if (land && p.vac) R.push('Vacant / land parcel');
+  if (c.acMin || c.acMax) {
+    const f = fit(ac, c.acMin, c.acMax, o.acTol); if (f < 0) return null; s += [4, 12, 20][f]; if (f < 2) exact = false;
+    R.push(f === 2 ? `Land ${ac.toFixed(1)} ac` : f === 1 ? `Land ${ac.toFixed(1)} ac (close)` : 'Land area not in public record');
+  } else s += 10;
+  const soft = (ok, known, txtOk, txtUnk, w, unkOk) => { if (known && !ok) { if (!o.loose) return false; exact = false; return true; } if (known) { s += w; R.push(txtOk); } else { s += w / 4; if (!unkOk) exact = false; if (txtUnk) R.push(txtUnk); } return true; };
+  const pt = val(p, 'propType');
+  if (c.type && !soft(pt === c.type, !!pt, pt, '', 10, true)) return null;   // public records rarely carry a type: blank type doesn't demote
+  const ch = +val(p, 'clearHeight'); if (c.clearMin && !soft(ch >= c.clearMin - 2, !!ch, `Clear ${ch}'`, 'Clear height unknown – verify', 10)) return null;
+  const dk = +val(p, 'docks'); if (c.docksMin && !soft(dk >= c.docksMin, !!dk, `${dk} docks`, 'Docks unknown – verify', 10)) return null;
+  const yb = +val(p, 'yearBuilt'); if (c.yearMin && !soft(yb >= c.yearMin, !!yb, `Built ${yb}`, '', 5)) return null;
+  if (c.budgetMax && c.intent !== 'Lease') { const pr = +val(p, 'askingPrice') || +val(p, 'marketValue'); if (!soft(pr <= c.budgetMax * 1.2, !!pr, `Est. value ${kmoney(pr)} within budget`, 'Value unknown', 10)) return null; }
+  const st = val(p, 'marketStatus'); if (st && /Under contract|Recently sold/.test(st)) return null;
+  if (c.intent === 'Investment' && /leased|Multi-tenant/i.test(val(p, 'occupancy') || '')) { s += 5; R.push('Leased (income)'); }
+  return { score: Math.min(100, s), reasons: R, exact };
+}
+function pass(c, o) {
   const out = [], sellers = c.intent === 'sellers';
-  const r = sellers ? null : { dealType: c.intent, sfMin: c.sfMin || '', sfMax: c.sfMax || '', landMinAc: c.acMin || '', clearMin: c.clearMin || '', docksMin: c.docksMin || '', budgetMax: c.budgetMax || '', maxRent: c.maxRent || '', yearMin: c.yearMin || '', assetType: c.type || '', counties: [], munis: '' };
   for (const p of S.props) {
     const R = []; if (!extra(p, c, R)) continue;
-    const om = scoreOf(p).score, d = deal(p); let rank, ms = null;
+    const om = scoreOf(p).score, d = deal(p); let rank, ms = null, exact = true;
     if (sellers) {
-      const sf = d.sf, ac = d.acres;
-      if (c.sfMin && !(sf >= c.sfMin)) continue; if (c.sfMax && !(sf && sf <= c.sfMax)) continue;
-      if (c.acMin && !(ac >= c.acMin)) continue; if (c.acMax && !(ac && ac <= c.acMax)) continue;
-      if (c.yearMin && !(+val(p, 'yearBuilt') >= c.yearMin)) continue;
-      if (c.budgetMax && d.value > c.budgetMax * 1.2) continue;
-      rank = Math.round(om * .8 + d.size * 20);
+      const f1 = (c.sfMin || c.sfMax) ? fit(d.sf, c.sfMin, c.sfMax, o.tol) : 2, f2 = (c.acMin || c.acMax) ? fit(d.acres, c.acMin, c.acMax, o.acTol) : 2;
+      if (f1 < 0 || f2 < 0) continue;
+      if (c.yearMin) { const yb = +val(p, 'yearBuilt'); if (yb && yb < c.yearMin && !o.loose) continue; if (!yb) exact = false; }
+      if (c.budgetMax && d.value > c.budgetMax * 1.2 && !o.loose) continue;
+      exact = exact && f1 === 2 && f2 === 2;
+      if (f1 === 0) R.push('Building SF not in public record'); if (f2 === 0) R.push('Land area not in public record');
+      rank = Math.round(om * .8 + d.size * 20 - (f1 < 2 ? 8 : 0) - (f2 < 2 ? 8 : 0));
     } else {
-      const m = matchOne(r, p); if (!m) continue;
-      if (c.acMax && d.acres > c.acMax * 1.2) continue;
-      ms = m.score; R.unshift(...m.reasons.filter(x => !/^Off-market score/.test(x))); rank = Math.round(ms * .55 + om * .45);
+      const m = softMatch(p, c, o); if (!m) continue;
+      ms = m.score; exact = m.exact; R.unshift(...m.reasons); rank = Math.round(ms * .55 + om * .45);
     }
     const top = scoreOf(p).reasons.filter(x => x.pts > 0).slice(0, 2).map(x => x.text);
-    out.push({ p, rank, ms, om, d, R: [...new Set(R)], top });
+    out.push({ p, rank, ms, om, d, exact, R: [...new Set(R)], top });
   }
-  return out.sort((a, b) => b.rank - a.rank || b.d.value - a.d.value).slice(0, limit);
+  return out.sort((a, b) => (b.exact - a.exact) || b.rank - a.rank || b.d.value - a.d.value);
+}
+// Never return nothing: relax one criterion group at a time and say which ones were relaxed.
+export function runAsk(c, limit = 150) {
+  let o = { tol: .2, acTol: .2 }, cc = { ...c }, res = pass(cc, o); const relaxed = [];
+  const has = (...ks) => ks.some(k => cc[k] != null && cc[k] !== false && !(Array.isArray(cc[k]) && !cc[k].length));
+  const steps = [
+    [() => has('sfMin', 'sfMax', 'acMin', 'acMax', 'type', 'clearMin', 'docksMin', 'yearMin', 'budgetMax'), () => { o = { tol: .5, acTol: .5, loose: true }; }, 'size and acreage widened to ±50%; type, clear height, docks, year and budget treated as preferences'],
+    [() => has('counties') && has('towns'), () => { delete cc.counties; }, 'county (kept the towns)'],
+    [() => has('towns'), () => { const ac = [...new Set((cc.areas || []).flatMap(a => AREA_COUNTIES[a] || []))]; delete cc.towns; if (ac.length && !has('counties')) cc.counties = ac; }, 'specific towns' + ((c.areas || []).length ? ` (kept ${(c.areas || []).join(' + ')} counties)` : '')],
+    [() => has('holdMin', 'oos', 'absentee', 'ownerTypes', 'noInst', 'yearMax', 'driveMin', 'vacant', 'warn', 'tdel', 'sba', 'slb', 'fresh', 'tif', 'oz', 'minScore', 'big', 'psfMax'), () => { ['holdMin', 'oos', 'absentee', 'ownerTypes', 'noInst', 'yearMax', 'driveMin', 'vacant', 'warn', 'tdel', 'sba', 'slb', 'fresh', 'tif', 'oz', 'minScore', 'big', 'psfMax'].forEach(k => delete cc[k]); }, 'owner and signal filters'],
+    [() => has('counties'), () => { delete cc.counties; }, 'county'],
+    [() => has('sfMin', 'sfMax', 'acMin', 'acMax'), () => { ['sfMin', 'sfMax', 'acMin', 'acMax'].forEach(k => delete cc[k]); }, 'size and acreage'],
+  ];
+  for (const [ok, apply, label] of steps) { if (res.length) break; if (!ok()) continue; apply(); relaxed.push(label); res = pass(cc, o); }
+  if (res.length && !relaxed.length && !res.some(x => x.exact)) relaxed.push('no parcel matched every criterion with known data, so parcels with blank public fields (marked "verify") or near-misses are shown');
+  const total = res.length; res = res.slice(0, limit); res.total = total; if (relaxed.length) res.relaxed = relaxed; return res;
 }
 // ---------- view ----------
 let LAST = { q: '', c: null };
@@ -205,7 +251,7 @@ function renderResults(box, c, el) {
       <div class="cbtns">${sellers ? '' : '<button class="btn primary" id="savereq">Save as buyer requirement</button>'}<button class="btn ghost" id="askcsv">Export CSV</button>${sellers ? '<button class="btn ghost" id="flagq">Add top 25 owners to research queue</button>' : ''}</div>
       ${c.type ? '<div class="xs muted">Property type is only checked where you entered a type. Public records don\'t carry warehouse vs. manufacturing.</div>' : ''}</section>
     ${scoreLegend()}
-    <section class="card"><div class="ch"><h2>${res.length >= 150 ? 'Top 150' : res.length} properties</h2><span class="muted xs">${sellers ? 'Ranked by off-market score, with a boost for deal size' : 'Ranked by match score (55%) and off-market score (45%), using the same engine as buyer requirements'}</span></div><div id="askt"></div></section>
+    <section class="card"><div class="ch"><h2>${res.relaxed ? 'Closest matches: ' : ''}${res.total > res.length ? `Top ${res.length} of ${fmt(res.total)}` : res.length} properties</h2><span class="muted xs">${sellers ? 'Ranked by off-market score, with a boost for deal size' : 'Ranked by match score (55%) and off-market score (45%), using the same engine as buyer requirements'}</span></div>${res.relaxed ? `<div class="xs muted" style="margin:0 0 8px">No property met every criterion, so these are the closest matches. Relaxed: ${esc(res.relaxed.join('; '))}.</div>` : `<div class="xs muted" style="margin:0 0 8px">Exact matches first. Parcels with blank public fields (e.g. no building SF in Will, Kane, Kendall, Grundy records) are kept but ranked lower and marked "verify".</div>`}<div id="askt"></div></section>
     <section class="card"><div class="ch"><h2>Owners (${owners.size})</h2><span class="muted xs">Owner groups are inferred from tax-bill names and mailing addresses</span></div><div id="asko"></div></section>`;
   table($('#askt', box), res, [
     { k: 'rank', l: 'Rank', h: x => scorePill(x.rank), v: x => x.rank },
