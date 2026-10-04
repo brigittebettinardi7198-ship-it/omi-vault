@@ -1,5 +1,5 @@
 // Off-Market Industrial service worker: shell network-first, data network-first (so scheduled refreshes arrive), cache fallback offline. Nothing is sent anywhere.
-const VER = 'omi-pub-202610032104';
+const VER = 'omi-pub-202610032112';
 const SHELL = ['./', './index.html', './css/app.css', './manifest.webmanifest', './vendor/leaflet.js', './vendor/leaflet.css', './vendor/papaparse.min.js', './vendor/xlsx.full.min.js',
   './js/app.js', './js/db.js', './js/util.js', './js/store.js', './js/scoring.js', './js/seed.js', './js/templates.js', './js/ui.js', './js/views.js', './js/views2.js', './js/markets.js', './js/hooks.js', './js/contacts.js', './js/backup.js', './js/comps.js', './js/views3.js', './js/ask.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];

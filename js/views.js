@@ -1,5 +1,6 @@
 import { trueOwnerHTML, bindTrueOwner, trueOwnerQueue, ownerEntities, linkedOwners, isLandTrust } from './trueowner.js';
 import { favBtn, isFav, favIds } from './favs.js';
+import { lstatBadge, lstatControl, lstatMatch, LSF } from './lstat.js';
 import { likelyBuyersHTML, likelyBuyers } from './buyers.js';
 import { TYPE4, isType, typeCounts, officeProps, loadOffice, phonesHTML, siteHTML, dcOf, iosOf, jumpHTML, appealHTML, shortWhy, nc, statsHTML, bindStats, statsLine, oppHTML, bindOpp, intelPane, cpermHTML, cvalHTML, networkHTML, cmpIds, cmpToggle, addToListModal, floodLayer } from './extras.js';
 import { $, $$, esc, fmt, money, kmoney, today, addDays, daysBetween, d8, badge, CONF, toast, toCSV, download, uid, scorePill, normName, scoreColor, SCORE_BANDS } from './util.js';
@@ -162,7 +163,7 @@ export async function prospect(el, startId) {
         ${fu ? `<div class="fu-note">Follow-up ${fu.due < today() ? 'overdue' : 'due'} ${d8(fu.due)}: ${esc(fu.note || '')}</div>` : ''}
         ${bsig ? `<div class="xs muted">Possible buyer too (inferred): ${esc(bsig.text)}</div>` : ''}
         <h3>Why call</h3><ul class="why">${(sc ? sc.reasons.slice(0, 5) : []).map(r => `<li>${kindTag(r.kind)} ${esc(r.text)}</li>`).join('')}${bs.length ? `<li><span class="kt k-match">match</span> Buyers for top property: ${bs.slice(0, 3).map(b => esc(b.r.name) + ' (' + b.score + ')').join(', ')}</li>` : ''}</ul>
-        <h3>Properties (${props.length}) ${scoreHelpBtn()}</h3><div class="plist">${props.slice(0, 5).map(p => { const d = deal(p); return `<a href="#/property/${p.id}" class="prow"><span>${scorePill(scoreOf(p).score)}</span><span><b>${esc(nc(val(p, 'address') || p.pin))}</b> ${favBtn(p.id)}<br><small>${esc(nc(val(p, 'city') || ''))} · ${sfAc(d)} · ${kmoney(d.value)}</small></span></a>`; }).join('')}</div>
+        <h3>Properties (${props.length}) ${scoreHelpBtn()}</h3><div class="plist">${props.slice(0, 5).map(p => { const d = deal(p); return `<a href="#/property/${p.id}" class="prow"><span>${scorePill(scoreOf(p).score)}</span><span><b>${esc(nc(val(p, 'address') || p.pin))}</b>${lstatBadge(p)} ${favBtn(p.id)}<br><small>${esc(nc(val(p, 'city') || ''))} · ${sfAc(d)} · ${kmoney(d.value)}</small></span></a>`; }).join('')}</div>
         <div class="xs muted">Mailing: ${esc([o.mail?.addr, o.mail?.city, o.mail?.st, o.mail?.zip].filter(Boolean).join(', '))}</div>
         ${top ? linksHTML(propertyLinks(Object.fromEntries(['address', 'city', 'zip', 'county', 'pin', 'municipality', 'taxpayer'].map(k => [k, val(top, k)]).concat([['lat', top.lat], ['lon', top.lon]])), o).filter(l => ['Owner / entity', 'Owner + Illinois', 'County assessor', MARKET.sos.name, 'Street View'].includes(l[0]))) : ''}
         ${quickLogHTML('pql')}
@@ -177,12 +178,12 @@ export async function prospect(el, startId) {
 }
 
 // ================= PROPERTIES =================
-const PF = { county: '', q: '', type: '', minSf: '', minAc: '', minScore: '', buyer: false, fresh: false, noContact: false, dc: false, ios: false, favs: false, pt: [] };
+const PF = { county: '', q: '', type: '', minSf: '', minAc: '', minScore: '', buyer: false, fresh: false, noContact: false, dc: false, ios: false, favs: false, pt: [], ls: '' };
 // all available list columns; the column chooser stores the visible set in settings
 const PCOLS = (sc, mm) => [
   { k: 'pr', l: 'Priority', h: p => `<b class="rank">${priorityOf(p)}</b>`, v: p => priorityOf(p) },
   { k: 'om', l: 'Score', h: p => scorePill(sc.get(p.id).score), v: p => sc.get(p.id).score, def: 1 },
-  { k: 'address', l: 'Address', h: p => `${favBtn(p.id)} <a href="#/property/${p.id}">${esc(nc(val(p, 'address') || p.pin))}</a> ${bigTag(deal(p))}${mm.has(p.id) ? ' <span class="tag match">BUYER</span>' : ''}${S.chg.has(p.id) ? ' <span class="kt k-fresh">fresh</span>' : ''}<div class="sub">${esc(val(p, 'city') || val(p, 'municipality') || '')}${val(p, 'county') ? ' · ' + esc(val(p, 'county')) : ''}</div>`, v: p => val(p, 'address') || '', def: 1, fixed: 1 },
+  { k: 'address', l: 'Address', h: p => `${favBtn(p.id)} <a href="#/property/${p.id}">${esc(nc(val(p, 'address') || p.pin))}</a>${lstatBadge(p)} ${bigTag(deal(p))}${mm.has(p.id) ? ' <span class="tag match">BUYER</span>' : ''}${S.chg.has(p.id) ? ' <span class="kt k-fresh">fresh</span>' : ''}<div class="sub">${esc(val(p, 'city') || val(p, 'municipality') || '')}${val(p, 'county') ? ' · ' + esc(val(p, 'county')) : ''}</div>`, v: p => val(p, 'address') || '', def: 1, fixed: 1 },
   { k: 'city', l: 'City', h: p => esc(val(p, 'city') || val(p, 'municipality') || ''), v: p => val(p, 'city') || '' },
   { k: 'co', l: 'County', h: p => esc(val(p, 'county')), v: p => val(p, 'county') },
   { k: 'sf', l: 'Bldg SF', cls: 'num', h: p => fmt(val(p, 'bldgSf')), v: p => +val(p, 'bldgSf') || null, def: 1 },
@@ -207,7 +208,7 @@ export async function properties(el) {
   const ALL = PCOLS(sc, mm), shownK = setting('propCols5', null) || ALL.filter(c => c.def).map(c => c.k);
   const chip = (id, on, label) => `<button class="fchip ${on ? 'on' : ''}" data-chip="${id}">${label}</button>`;
   const ptc = typeCounts(), ptChips = () => TYPE4.map(([k, l]) => `<button class="fchip ${PF.pt.includes(k) ? 'on' : ''}" data-pt="${k}" aria-pressed="${PF.pt.includes(k)}">${l}${ptc[k] != null ? ` <span class="xs muted">${fmt(ptc[k])}</span>` : k === 'office' ? ' <span class="xs muted">Cook</span>' : ''}</button>`).join('');
-  const nAct = [PF.county, PF.type, PF.minScore, PF.buyer, PF.fresh, PF.noContact, PF.dc, PF.ios, PF.favs, PF.pt.length, PF.minSf, PF.minAc].filter(Boolean).length + (big ? 1 : 0);
+  const nAct = [PF.county, PF.type, PF.minScore, PF.buyer, PF.fresh, PF.noContact, PF.dc, PF.ios, PF.favs, PF.pt.length, PF.ls, PF.minSf, PF.minAc].filter(Boolean).length + (big ? 1 : 0);
   el.innerHTML = `<div class="page wide ${view === 'map' ? 'mapmode' : ''}"><div class="ph"><div><h1>Properties</h1><div class="muted" id="pcount"></div></div>
     <div class="ph-act"><button class="btn ${PF.favs ? 'primary' : ''}" data-chip="favs" aria-pressed="${PF.favs}">★ Favorites${favIds().length ? ' · ' + favIds().length : ''}</button><a class="btn" href="#/near">◎ Near me</a>${view !== 'map' ? '<button class="btn ghost colsb2" id="colsb">Columns</button>' : ''}<div class="seg" role="group" aria-label="View">${[['map', 'Map'], ['list', 'List'], ['split', 'Split']].map(([k, l]) => `<button class="${view === k ? 'on' : ''}" data-view="${k}">${l}</button>`).join('')}</div></div></div>
     <div class="pbar2"><input id="fq" placeholder="Search address, city, owner or PIN" value="${esc(PF.q)}">
@@ -216,6 +217,7 @@ export async function properties(el) {
           <div class="pf-lbl">County</div><div class="chips fchips">${chip('county:', !PF.county, 'All')}${Object.keys(MARKET.counties).map(c => chip('county:' + c, PF.county === c, c)).join('')}</div>
           <div class="pf-lbl">Show</div><div class="chips fchips">${chip('type:bldg', PF.type === 'bldg', 'Buildings')}${chip('type:land', PF.type === 'land', 'Land')}${chip('score', PF.minScore === '70', 'Score 70+')}${chip('buyer', PF.buyer, 'Buyer match')}${chip('fresh', PF.fresh, 'Fresh change')}${chip('noContact', PF.noContact, 'No verified contact')}${chip('dc', PF.dc, 'Data center site')}${chip('ios', PF.ios, 'Outdoor storage land')}</div>
           <div class="pf-lbl">Property type <span class="xs muted">(any selected)</span></div><div class="chips fchips">${ptChips()}</div>
+          <div class="pf-lbl">Listing status <span class="xs muted">(set by you)</span></div><div class="chips fchips">${LSF.map(([k, l]) => `<button class="fchip ${PF.ls === k ? 'on' : ''}" data-ls="${k}" aria-pressed="${PF.ls === k}">${l}</button>`).join('')}</div>
           <div class="pf-lbl">Minimums</div><div class="mf-b"><input id="fsf" type="number" inputmode="numeric" placeholder="Min SF" value="${PF.minSf}"><input id="fac" type="number" inputmode="decimal" placeholder="Min acres" value="${PF.minAc}"><input id="fsc" type="number" inputmode="numeric" placeholder="Min score" value="${PF.minScore}"></div>
           <div class="pf-lbl">Tools</div><div class="btnrow"><button class="btn sm ghost" id="addp">+ Property</button><button class="btn sm ghost" id="exp">Export CSV</button></div></div></details></div>
     <div class="ptq" role="group" aria-label="Property type">${ptChips()}</div>
@@ -233,7 +235,7 @@ export async function properties(el) {
       if (PF.type === 'land' && !p.vac) return false; if (PF.type === 'bldg' && p.vac) return false;
       if (PF.minSf && d.sf < +PF.minSf) return false; if (PF.minAc && d.acres < +PF.minAc) return false;
       if (PF.minScore && sc.get(p.id).score < +PF.minScore) return false; if (PF.buyer && !mm.has(p.id)) return false;
-      if (PF.fresh && !S.chg.has(p.id)) return false; if (PF.noContact && contactFound(S.owners.get(p.ownerId))) return false; if (PF.dc && !dcOf(p)) return false; if (PF.favs && !favSet.has(p.id)) return false; if (PF.pt.length && !PF.pt.some(k => isType(p, k))) return false; if (PF.ios && !iosOf(p)) return false;
+      if (PF.fresh && !S.chg.has(p.id)) return false; if (PF.noContact && contactFound(S.owners.get(p.ownerId))) return false; if (PF.dc && !dcOf(p)) return false; if (PF.favs && !favSet.has(p.id)) return false; if (PF.pt.length && !PF.pt.some(k => isType(p, k))) return false; if (PF.ios && !iosOf(p)) return false; if (PF.ls && !lstatMatch(p, PF.ls)) return false;
       if (q && !(((val(p, 'address') || '') + ' ' + (val(p, 'city') || '') + ' ' + (val(p, 'taxpayer') || '') + ' ' + oName(p.ownerId)).toLowerCase().includes(q) || (dq.length >= 6 && String(p.pin).replace(/\D/g, '').includes(dq)))) return false;
       return true;
     });
@@ -247,6 +249,7 @@ export async function properties(el) {
   const deb = fn => { let t; return () => { clearTimeout(t); t = setTimeout(fn, 250); }; };
   const upd = () => { PF.q = $('#fq').value; PF.minSf = $('#fsf').value; PF.minAc = $('#fac').value; PF.minScore = $('#fsc').value; draw(); };
   $$('.filters input', el).forEach(i => i.addEventListener('input', deb(upd)));
+  $$('[data-ls]', el).forEach(b => b.onclick = () => { PF.ls = b.dataset.ls; OPENF = true; properties(el); });
   $$('[data-pt]', el).forEach(b => b.onclick = async () => { const k = b.dataset.pt; PF.pt = PF.pt.includes(k) ? PF.pt.filter(x => x !== k) : [...PF.pt, k]; OPENF = !!b.closest('.pf-panel'); if (k === 'office' && PF.pt.includes(k) && !officeProps().length) { b.textContent = 'Loading office…'; await loadOffice(); } properties(el); });
   $$('[data-chip]', el).forEach(b => b.onclick = () => { const [k, v] = b.dataset.chip.split(':'); if (k === 'county') PF.county = v; else if (k === 'type') PF.type = PF.type === v ? '' : v; else if (k === 'score') PF.minScore = PF.minScore === '70' ? '' : '70'; else PF[k] = !PF[k]; properties(el); });
   $$('[data-view]', el).forEach(b => b.onclick = async () => { await setSetting('propView', b.dataset.view); properties(el); });
@@ -329,7 +332,7 @@ export async function property(el, id) {
     tenants: `<section class="card"><div class="ch"><h2>Occupancy & market</h2><button class="btn sm" data-editf>Edit</button></div>${fields(TABF.tenants)}</section>
       <section class="card"><div class="ch"><h2>Tenant clues from public records</h2><span class="muted xs">Matched by street address. Possible occupants, not confirmed tenants.</span></div>${fields(TABF.signals.slice(3))}</section>
       <section class="card"><div class="ch"><h2>Leases</h2><a class="sm" href="#/leases/new/${p.id}">+ Lease</a></div>${propLeases(p.id).map(l => { const li = leaseInfo(l); return `<div class="lrow"><b>${esc(l.tenantName || S.companies.get(l.companyId)?.name || 'Tenant')}</b> · expires ${esc(l.expiration || '?')} ${badge(l.conf || (l.expType === 'known' ? 'confirmed' : 'estimated'))} · outreach ${esc(li.outreach || '–')} · <span class="urg u-${li.urgency.replace(/\W/g, '').toLowerCase()}">${li.urgency}</span></div>`; }).join('') || '<div class="muted">No leases recorded. Tenant names are not in public records; add what you learn.</div>'}</section>`,
-    research: `<section class="card"><div class="ch"><h2>Is it listed? Check manually</h2><span class="muted xs">Opens Google searches limited to each site. Nothing is scraped. Record what you find.</span></div>${linksHTML(listingLinks(p))}
+    research: `<section class="card"><div class="ch"><h2>Is it listed? Check manually</h2><span class="muted xs">Opens Google searches limited to each site. Nothing is scraped. Record what you find.</span></div>${linksHTML(listingLinks(p))}${lstatControl(p)}
       <div class="cbtns"><button class="btn sm" id="notlisted">Not listed (checked today)</button><button class="btn sm" id="lstat2">Mark as listed / add listing</button><button class="btn sm ghost" id="pfly2">Paste flyer</button></div><div class="xs muted">Market status: <b>${esc(val(p, 'marketStatus') || 'not checked')}</b>${p.listingChecked ? ' · last checked ' + esc(p.listingChecked) : ''}</div></section>
       <section class="card"><div class="ch"><h2>Research links</h2><label class="toggle"><input type="checkbox" id="needr" ${p.needsResearch ? 'checked' : ''}> In research queue</label></div>${linksHTML(links)}
       <div class="checklist">${CHECK.map(([k, l]) => `<label><input type="checkbox" data-ck="${k}" ${R[k] ? 'checked' : ''}> ${l}${R[k] ? ` <span class="xs muted">${d8(R[k])}</span>` : ''}</label>`).join('')}</div></section>`,

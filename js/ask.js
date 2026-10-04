@@ -6,6 +6,7 @@ import { S, val, save, OPT } from './store.js';
 import { matchOne, scoreOf, deal, freshFor } from './scoring.js';
 import { table, modal, scoreLegend } from './ui.js';
 import { MARKET } from './markets.js';
+import { lstatBadge, lstatMatch, LSF } from './lstat.js';
 
 export const EXAMPLES = [
   "buyer wants 100-200k SF warehouse near O'Hare, 30' clear, 10+ docks, under $25M, owned 20+ yrs",
@@ -130,7 +131,7 @@ const CH = {
   type: ['Type', c => c.type, 'select', OPT.propType], counties: ['County', c => c.counties.join(', '), 'list'], towns: ['Towns', c => (c.areas ? c.areas.join(' + ') + ': ' : '') + c.towns.slice(0, 4).join(', ') + (c.towns.length > 4 ? ` +${c.towns.length - 4}` : ''), 'list'],
   oos: ['Owner', () => 'Out-of-state tax bill', 'bool'], absentee: ['Owner', () => 'Absentee (bill mails elsewhere)', 'bool'], ownerTypes: ['Owner type', c => c.ownerTypes.join(' / '), 'list'], noInst: ['Owner', () => 'Not institutional', 'bool'],
   vacant: ['Vacant', () => 'Yes', 'bool'], warn: ['Signal', () => 'WARN layoff / closing', 'bool'], tdel: ['Signal', () => 'In Cook delinquent-tax file', 'bool'], sba: ['Signal', () => 'SBA 504 loan', 'bool'], slb: ['Signal', () => 'Sale-leaseback', 'bool'],
-  fresh: ['Signal', () => 'Fresh change (120 days)', 'bool'], tif: ['Zone', () => 'TIF', 'bool'], oz: ['Zone', () => 'Opportunity Zone', 'bool'], minScore: ['Off-market score', c => c.minScore + '+', 'num'], big: ['Size', () => 'Big deals only', 'bool'],
+  fresh: ['Signal', () => 'Fresh change (120 days)', 'bool'], tif: ['Zone', () => 'TIF', 'bool'], oz: ['Zone', () => 'Opportunity Zone', 'bool'], minScore: ['Off-market score', c => c.minScore + '+', 'num'], big: ['Size', () => 'Big deals only', 'bool'], lstat: ['Listing status', c => (LSF.find(x => x[0] === c.lstat) || [, c.lstat])[1], 'select', ['For sale', 'For lease', 'Both', 'Off-market', 'none']],
 };
 const chipsHTML = c => Object.keys(CH).filter(k => c[k] != null && c[k] !== false && !(Array.isArray(c[k]) && !c[k].length)).map(k => `<span class="achip" data-k="${k}"><button type="button" class="ach-e" data-edit="${k}" title="Edit">${esc(CH[k][0])}: <b>${esc(CH[k][1](c))}</b></button>${k === 'intent' ? '' : `<button type="button" class="ach-x" data-del="${k}" aria-label="Remove ${esc(CH[k][0])}">✕</button>`}</span>`).join('');
 // ---------- engine ----------
@@ -156,6 +157,7 @@ function extra(p, c, R) {   // criteria the requirement matcher doesn't cover; r
     if (c.fresh) { const f = freshFor(p); if (f.length) hits.push('Fresh change ' + f[0].d); }
     if (!hits.length) return false; R.push(...hits);
   }
+  if (c.lstat && !lstatMatch(p, c.lstat)) return false;
   if (c.tif && !p.tif) return false; if (c.oz && !p.oz) return false;
   if (c.big && !deal(p).big) return false;
   const om = scoreOf(p).score; if (c.minScore && om < c.minScore) return false;
@@ -255,7 +257,7 @@ function renderResults(box, c, el) {
     <section class="card"><div class="ch"><h2>Owners (${owners.size})</h2><span class="muted xs">Owner groups are inferred from tax-bill names and mailing addresses</span></div><div id="asko"></div></section>`;
   table($('#askt', box), res, [
     { k: 'rank', l: 'Rank', h: x => scorePill(x.rank), v: x => x.rank },
-    { k: 'a', l: 'Property', h: x => `<a href="#/property/${x.p.id}">${esc(nc(val(x.p, 'address') || x.p.pin))}</a><div class="xs muted">${esc(nc(val(x.p, 'city') || ''))} · ${esc(x.p.co || '')}</div>`, v: x => val(x.p, 'address') },
+    { k: 'a', l: 'Property', h: x => `<a href="#/property/${x.p.id}">${esc(nc(val(x.p, 'address') || x.p.pin))}</a>${lstatBadge(x.p)}<div class="xs muted">${esc(nc(val(x.p, 'city') || ''))} · ${esc(x.p.co || '')}</div>`, v: x => val(x.p, 'address') },
     { k: 'sz', l: 'Size', h: x => x.d.sf ? fmt(x.d.sf) + ' SF' : x.d.acres ? x.d.acres.toFixed(1) + ' ac' : '–', v: x => x.d.sf || x.d.acres * 43560 },
     { k: 'v', l: 'Est. value', h: x => kmoney(x.d.value) || '–', v: x => x.d.value },
     { k: 'om', l: 'Off-mkt', h: x => scorePill(x.om), v: x => x.om },
@@ -285,7 +287,7 @@ function renderResults(box, c, el) {
 function editChip(c, k, done) {
   const [label, , kind, opts] = CH[k];
   const cur = Array.isArray(c[k]) ? c[k].join(', ') : c[k] ?? '';
-  const input = kind === 'select' ? `<select id="cv">${(opts || []).map(o => `<option value="${esc(o)}" ${o === cur ? 'selected' : ''}>${esc(o === 'sellers' ? 'Likely sellers (off-market owners)' : o)}</option>`).join('')}</select>`
+  const input = kind === 'select' ? `<select id="cv">${(opts || []).map(o => `<option value="${esc(o)}" ${o === cur ? 'selected' : ''}>${esc(o === 'sellers' ? 'Likely sellers (off-market owners)' : o === 'none' ? 'Not checked' : o)}</option>`).join('')}</select>`
     : k === 'counties' ? `<div class="checklist">${Object.keys(MARKET.counties).map(x => `<label><input type="checkbox" value="${x}" ${(c.counties || []).includes(x) ? 'checked' : ''}> ${x}</label>`).join('')}</div>`
     : k === 'ownerTypes' ? `<div class="checklist">${['individual', 'trust', 'estate', 'company', 'other'].map(x => `<label><input type="checkbox" value="${x}" ${(c.ownerTypes || []).includes(x) ? 'checked' : ''}> ${x}</label>`).join('')}</div>`
     : kind === 'list' ? `<textarea id="cv" rows="3" placeholder="Comma-separated">${esc(cur)}</textarea>` : `<input id="cv" type="number" step="any" inputmode="decimal" value="${esc(cur)}">`;

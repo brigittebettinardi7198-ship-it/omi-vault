@@ -2,6 +2,7 @@
 // Location comes from the browser's geolocation on this device and is used only in memory for this page. It is never saved or sent anywhere.
 // A typed address / street / city / ZIP is matched locally against the parcel data (no outside geocoder), so that never leaves the device either.
 import { $, $$, esc, fmt, kmoney, scorePill } from './util.js';
+import { lstatBadge } from './lstat.js';
 import { S, val } from './store.js';
 import { scoreOf, deal } from './scoring.js';
 import { nc, TYPE4, isType, officeProps, loadOffice } from './extras.js';
@@ -46,7 +47,7 @@ export function nearList(c, min = 50, radius = 5, k = 40, pt = '') {
   return out.sort((a, b) => a.d - b.d || b.s - a.s).slice(0, k);
 }
 const card = ({ p, d, s }) => { const dl = deal(p), o = p.ownerId && S.owners.get(p.ownerId);
-  return `<div class="nm-card"><div class="nm-top"><a class="nm-a" href="#/property/${p.id}">${esc(nc(val(p, 'address') || p.id))}</a>${d == null ? favBtn(p.id) : `<span class="nm-d">${d < .1 ? Math.round(d * 5280) + ' ft' : d.toFixed(1) + ' mi'}</span>`}</div>
+  return `<div class="nm-card"><div class="nm-top"><a class="nm-a" href="#/property/${p.id}">${esc(nc(val(p, 'address') || p.id))}</a>${lstatBadge(p)}${d == null ? favBtn(p.id) : `<span class="nm-d">${d < .1 ? Math.round(d * 5280) + ' ft' : d.toFixed(1) + ' mi'}</span>`}</div>
     <div class="nm-m">${scorePill(s)}<span>${dl.sf ? fmt(dl.sf) + ' SF' : dl.acres ? dl.acres.toFixed(1) + ' ac' : 'size –'}</span><span>${dl.value ? kmoney(dl.value) : 'value –'}</span><span class="muted">${esc(nc(val(p, 'city') || ''))}</span></div>
     <div class="nm-o muted">${esc(nc(o ? o.name : val(p, 'taxpayer') || 'Owner unknown'))}</div>
     <div class="nm-b"><button class="btn primary" data-call="${p.id}">Call</button><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat.toFixed(6)},${p.lon.toFixed(6)}">Directions</a></div></div>`; };

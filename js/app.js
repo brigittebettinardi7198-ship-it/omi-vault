@@ -1,4 +1,5 @@
 import { $, $$, esc, toast } from './util.js';
+import { bindLstat } from './lstat.js';
 import { S, loadAll, val, setting, setSetting } from './store.js';
 import { ensureSeed } from './seed.js';
 import { backupDue, downloadBackup, restoreFromFile } from './backup.js';
@@ -81,7 +82,7 @@ function backupBanner() {
 function dataStamp() { const d = $('#dstamp'); if (d && S.meta) d.innerHTML = `Public data last updated <b>${esc(S.meta.generated)}</b> CT`; }
 async function boot() {
   document.documentElement.dataset.theme = localStorage.getItem('omi_theme5') || 'light';
-  shell(); bindFavs(); bindCall();
+  shell(); bindFavs(); bindCall(); bindLstat();
   $('#view').innerHTML = '<div class="boot"><div class="spinner"></div><div id="bootmsg">Opening local database…</div></div>';
   await loadAll();
   const th = setting('theme5', null); if (th) { document.documentElement.dataset.theme = th; }
