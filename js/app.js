@@ -7,6 +7,7 @@ import * as V from './views.js';
 import * as X from './extras.js';
 import { nearView, favView } from './near.js';
 import { bindFavs } from './favs.js';
+import { bindCall } from './callpanel.js';
 import { scoreHelp } from './ui.js';
 
 const NAV = [
@@ -80,7 +81,7 @@ function backupBanner() {
 function dataStamp() { const d = $('#dstamp'); if (d && S.meta) d.innerHTML = `Public data last updated <b>${esc(S.meta.generated)}</b> CT`; }
 async function boot() {
   document.documentElement.dataset.theme = localStorage.getItem('omi_theme5') || 'light';
-  shell(); bindFavs();
+  shell(); bindFavs(); bindCall();
   $('#view').innerHTML = '<div class="boot"><div class="spinner"></div><div id="bootmsg">Opening local database…</div></div>';
   await loadAll();
   const th = setting('theme5', null); if (th) { document.documentElement.dataset.theme = th; }

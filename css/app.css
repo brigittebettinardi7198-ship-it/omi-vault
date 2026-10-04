@@ -582,3 +582,6 @@ details.sect{border:0;box-shadow:var(--shadow);border-radius:var(--r);background
 .lc-y{margin:8px 0}
 #oppx{min-width:0;max-width:100%;overflow:hidden}#oppx>.tabs{overflow-x:auto;max-width:100%;scrollbar-width:none}#oppx>.tabs::-webkit-scrollbar{display:none}#oppx [data-opane]{max-width:100%}
 .sects>*{min-width:0}
+/* Call owner chooser */
+.cp h2{margin:0 0 6px}.cp-l{font-weight:650;margin:10px 0 4px}.cp-list{list-style:none;margin:0;padding:0}.cp-list li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line2,#eee)}
+.cp-list .btn{min-height:40px;white-space:nowrap}.cp-acts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.cp-acts .btn{min-height:40px}.cp-f{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
