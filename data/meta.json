@@ -1,115 +1,108 @@
 {
- "generated": "2026-10-03 21:23",
+ "generated": "2026-10-05 06:12",
  "tz": "America/Chicago",
  "counties": {
   "cook": {
-   "refreshed": "2026-10-03 00:11",
+   "refreshed": "2026-10-05 06:12",
    "raw": 26722,
    "kept": 24587
   },
   "dupage": {
-   "refreshed": "2026-10-02 23:22",
+   "refreshed": "2026-10-05 06:12",
    "raw": 5511,
    "kept": 4838
   },
   "lake": {
-   "refreshed": "2026-10-02 23:22",
+   "refreshed": "2026-10-05 06:12",
    "raw": 2926,
    "kept": 2247
   },
   "mchenry": {
-   "refreshed": "2026-10-02 23:22",
+   "refreshed": "2026-10-05 06:12",
    "raw": 2979,
    "kept": 2705
   },
   "kane": {
-   "refreshed": "2026-10-03 00:22",
+   "refreshed": "2026-10-05 06:12",
    "raw": 2919,
    "kept": 2856
   },
   "will": {
-   "refreshed": "2026-10-03 00:19",
-   "raw": 736,
-   "kept": 650
+   "refreshed": "2026-10-05 06:12",
+   "raw": 737,
+   "kept": 651
   },
   "kendall": {
-   "refreshed": "2026-10-03 20:54",
-   "raw": 197,
-   "kept": 144
+   "refreshed": "2026-10-05 06:12",
+   "raw": 195,
+   "kept": 142
   },
   "grundy": {
-   "refreshed": "2026-10-03 20:54",
+   "refreshed": "2026-10-05 06:12",
    "raw": 362,
    "kept": 190
   }
  },
- "changes": 0,
+ "changes": 21,
  "sources": {
   "ptax": {
    "name": "IL Dept of Revenue PTAX-203 transfer declarations (industrial use)",
-   "rows": 9520,
-   "latest_recorded": "2026-09-25",
-   "fetched": "2026-10-03"
+   "rows": 9640,
+   "latest_recorded": "2026-10-02",
+   "fetched": "2026-10-05"
   },
   "permits": {
    "name": "Cook County Assessor building permits (non-residential, >= $50k, last 3 yrs)",
-   "rows": 15796,
-   "fetched": "2026-10-03"
+   "rows": 15777,
+   "fetched": "2026-10-05"
   },
   "tdel": {
    "name": "Cook County Clerk 20-year delinquent property tax file",
    "asof": "2025-05-01",
    "rows": 132012,
-   "fetched": "2026-10-03"
+   "fetched": "2026-10-05"
   },
   "sba": {
    "name": "SBA 504 loan FOIA data (active loans)",
    "asof": "2026-06-30",
    "rows": 2525,
-   "fetched": "2026-10-03"
+   "fetched": "2026-10-05"
   },
   "fmcsa": {
    "name": "FMCSA active motor carrier census (3+ power units)",
-   "rows": 9812,
-   "fetched": "2026-10-03"
+   "rows": 9792,
+   "fetched": "2026-10-05"
   },
   "warn": {
    "name": "Illinois WARN notices (IL Dept of Commerce, monthly reports)",
    "files": 12,
-   "rows": 93,
-   "fetched": "2026-10-03"
+   "rows": 95,
+   "fetched": "2026-10-05"
   },
   "chi_permits": {
    "name": "City of Chicago building permits (>= $50k reported cost, plus all wrecking/demolition), last 3 yrs",
-   "rows": 20690,
-   "fetched": "2026-10-03"
+   "rows": 20669,
+   "fetched": "2026-10-05"
   },
   "cook_val": {
    "name": "Cook County Assessor commercial valuation, industrial (assessor's assumed rent, vacancy, cap rate; estimates, not leases)",
    "rows": 4554,
-   "fetched": "2026-10-03"
+   "fetched": "2026-10-05"
   },
   "proximity": {
    "name": "Cook County Assessor parcel proximity (nearest rail line, highway and its daily traffic)",
    "year": "2025",
-   "fetched": "2026-10-03"
+   "fetched": "2026-10-05"
   },
   "appeals": {
    "name": "Cook County Assessor appeals (industrial/commercial classes, last 3 yrs)",
    "rows": 56919,
-   "fetched": "2026-10-03"
+   "fetched": "2026-10-05"
   },
   "flood": {
-   "name": "FEMA National Flood Hazard Layer, Special Flood Hazard Areas at the parcel's center point (each hit re-checked against FEMA's live point query)",
+   "name": "FEMA National Flood Hazard Layer (Special Flood Hazard Areas, simplified ~5 m), parcel center point",
    "rows": 20593,
-   "fetched": "2026-10-03",
-   "confirmed": 925
+   "fetched": "2026-10-05"
   }
- },
- "footprints": {
-  "source": "Microsoft Global ML Building Footprints (ODbL), tiles 2026-02-03",
-  "field": "est_bldg_sf",
-  "min_building_sf": 1000,
-  "method": "roof footprints assigned to nearest industrial parcel point within an acreage-bounded radius"
  }
 }
