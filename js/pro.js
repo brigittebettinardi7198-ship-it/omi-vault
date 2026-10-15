@@ -234,7 +234,7 @@ function palette() {
 }
 let bound = false;
 export function bindPro() {
-  if (bound) return; bound = true;
+  if (bound) return; bound = true; bindSmartSearch(); bindNav();
   document.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palette(); } });
   const host = document.querySelector('.topnav .search');
   if (host && !document.querySelector('.pr-kbtn')) { const b = document.createElement('button'); b.className = 'pr-kbtn'; b.type = 'button'; b.title = 'Command palette'; b.innerHTML = '<kbd>⌘K</kbd>'; b.onclick = palette; host.after(b); }
@@ -242,7 +242,7 @@ export function bindPro() {
 
 // ---------- hook called after every screen renders ----------
 export function enhance(el, r, id) {
-  bindPro();
+  bindPro(); markActive(); if (r === 'today' || r === 'crm') paintNav();
   const pg = el.querySelector('.page'); if (!pg) return;
   if (r === 'property' && id) {
     const p = S.prop.get(id); if (!p || pg.querySelector('.pr-intel')) return;
@@ -253,4 +253,157 @@ export function enhance(el, r, id) {
     const h = pg.querySelector('.explain') || pg.querySelector('h1');
     if (h) h.insertAdjacentHTML('afterend', kpiHTML());
   }
+}
+
+// ---------- Smart search (top bar). On-device only: no API, nothing typed leaves the browser. ----------
+// Word-order-free, partial-word matching ("118th accardi", "ridg skokie"), street abbreviations
+// (avenue = ave, north = n), PIN digits, towns, owners, businesses and screens, ranked by relevance
+// and deal score, with keyboard navigation and recently opened items.
+const ABBR = { street: 'st', avenue: 'ave', av: 'ave', road: 'rd', drive: 'dr', boulevard: 'blvd', north: 'n', south: 's', east: 'e', west: 'w', parkway: 'pkwy', lane: 'ln', court: 'ct', place: 'pl', highway: 'hwy', terrace: 'ter', circle: 'cir', trail: 'trl', mount: 'mt', saint: 'st', first: '1st', second: '2nd', third: '3rd' };
+const tok = s => String(s || '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).map(w => ABBR[w] || w);
+let SIX = { v: -1 };
+function searchIndex() {
+  if (SIX.v === S.version && SIX.n === S.props.length) return SIX;
+  const props = S.props.map(p => { const a = tok(val(p, 'address') || p.addr), c = tok(cityOf(p)), o = tok(ownerName(p)); return { p, a, c, o, all: [...a, ...c, ...o, ...tok(p.zip)], pin: String(p.pin || '').replace(/\D/g, '') }; });
+  const owners = [...S.owners.values()].map(o => ({ o, t: tok([o.name, ...(o.entities || []), o.contactName].join(' ')) }));
+  const tc = new Map(); for (const p of S.props) { const c = String(cityOf(p) || '').replace(/\b(Vlg|Vil|Vl)\.?$/i, 'Village').replace(/\bHts\b/i, 'Heights').replace(/\bPk\b/i, 'Park'); if (c && !/unincorporated/i.test(c)) tc.set(c, (tc.get(c) || 0) + 1); }
+  const towns = [...tc.entries()].filter(([, k]) => k >= 5).map(([n, k]) => ({ n, k, t: tok(n) }));
+  SIX = { v: S.version, n: S.props.length, props, owners, towns }; return SIX;
+}
+const hit = (q, toks) => q.every(w => toks.some(t => t.startsWith(w)));
+const RKEY = 'omi_recent_search';
+const recentGet = () => { try { return JSON.parse(localStorage.getItem(RKEY) || '[]'); } catch { return []; } };
+const recentAdd = it => { try { const L = recentGet().filter(x => x[1] !== it[1]); L.unshift(it); localStorage.setItem(RKEY, JSON.stringify(L.slice(0, 8))); } catch { } };
+const INTENT = [[/^(stack|stacked|best|top|hottest)/, 'Stacked opportunities', '#/stack'], [/^(lease|expir)/, 'Leases & likely lease expirations', '#/leases'], [/^(sale.?lease|slb|leaseback)/, 'Sale-leaseback targets', '#/slb'], [/^(warn|layoff|closing)/, 'Market brief (WARN notices)', '#/brief'], [/^(call|today|follow)/, 'Today: call plan & follow-ups', '#/today'], [/^(buyer|req)/, 'Buyers & requirements', '#/requirements'], [/^(tenant|occup|who.?s inside)/, "Who's inside (tenants)", '#/occupants'], [/^(comp|sold|sales)/, 'Comps & listings', '#/comps'], [/^(off.?market|seller|owner.*sell)/, 'Off-Market sellers', '#/offmarket'], [/^(saved|star|fav)/, 'Saved properties', '#/favs']];
+function smartResults(raw) {
+  const q0 = raw.trim(), q = tok(q0), digits = q0.replace(/\D/g, ''), I = searchIndex(), out = [];
+  if (!q.length) return recentGet().map(x => ({ g: 'Recent', label: x[0], href: x[1], sub: x[2] || '', tag: x[3] || '' }));
+  // screens and intents
+  for (const [re, l, h] of INTENT) if (re.test(q0.toLowerCase())) out.push({ g: 'Go to', label: l, href: h, sub: 'Screen', tag: 'Go' });
+  // towns
+  const T = I.towns.filter(t => hit(q, t.t)).sort((a, b) => b.k - a.k).slice(0, 2);
+  for (const t of T) out.push({ g: 'Go to', label: `Sellers in ${t.n}`, href: `#/ask/${encodeURIComponent('sellers in ' + t.n)}`, sub: `${fmt(t.k)} industrial properties, ranked by chance to sell`, tag: 'Town' });
+  // properties: all words must match (any order, partial words OK)
+  const P = [];
+  for (const x of I.props) {
+    let m = false, r = 0;
+    if (digits.length >= 6 && x.pin.includes(digits)) { m = true; r = 300; }
+    else if (hit(q, x.all)) { m = true; const inAddr = hit(q, x.a); r = (inAddr ? 120 : 0) + (x.a.join(' ').startsWith(q.join(' ')) ? 80 : 0) + (hit(q, x.o) ? 40 : 0); }
+    if (m) P.push({ x, r: r + scoreOf(x.p).score / 2 });
+  }
+  P.sort((a, b) => b.r - a.r);
+  const seenAddr = new Set();
+  for (const { x } of P) { if (out.filter(o => o.g === 'Properties').length >= 10) break; const p = x.p, k = (addrOf(p) + cityOf(p)).toLowerCase(); if (seenAddr.has(k)) continue; seenAddr.add(k); const s = scoreOf(p).score, sf = sfOf(p).sf, st = stackOf(p).length; out.push({ g: 'Properties', label: addrOf(p), href: `#/property/${p.id}`, sub: `${cityOf(p)} · ${nc(ownerName(p))}${sf ? ' · ' + fmt(sf) + ' SF' : ''}`, score: s, stack: st, tag: 'Property' }); }
+  // owners
+  const O = I.owners.filter(o => hit(q, o.t)).map(o => ({ o: o.o, n: S.props.filter(p => p.ownerId === o.o.id).length })).sort((a, b) => b.n - a.n).slice(0, 5);
+  for (const { o, n } of O) out.push({ g: 'Owners', label: nc(o.name), href: `#/owner/${o.id}`, sub: `${n} propert${n === 1 ? 'y' : 'ies'}${o.stage ? ' · ' + o.stage : ''}${o.mail?.city ? ' · mail: ' + nc(o.mail.city) + ', ' + o.mail.st : ''}`, tag: 'Owner' });
+  // tenants / buyers from the broker's own records
+  for (const c of S.companies.values()) if (hit(q, tok(c.name))) out.push({ g: 'Tenants & buyers', label: c.name, href: `#/company/${c.id}`, sub: c.industry || 'Tenant', tag: 'Tenant' });
+  for (const r of S.requirements.values()) if (hit(q, tok((r.name || '') + ' ' + (r.clientName || '')))) out.push({ g: 'Tenants & buyers', label: r.name, href: `#/requirement/${r.id}`, sub: r.dealType || 'Requirement', tag: 'Buyer' });
+  // always offer plain-English Ask
+  out.push({ g: 'Ask', label: `Ask: "${q0}"`, href: `#/ask/${encodeURIComponent(q0)}`, sub: 'Smart search in plain English: size, area, owner type, signals', tag: 'Ask' });
+  return out.slice(0, 40);
+}
+let busPromise = null;
+async function withBusinesses(raw, out) {
+  if (raw.trim().length < 3) return out;
+  try { busPromise = busPromise || import('./sheets.js'); const M = await busPromise; const q = raw.trim().toLowerCase(), seen = new Set(out.map(o => o.href)); const B = M.businessSearch(q, 6).filter(x => !seen.has(`#/property/${x.p.id}`)); const at = out.findIndex(o => o.g === 'Owners' || o.g === 'Tenants & buyers' || o.g === 'Ask'); out.splice(at < 0 ? out.length : at, 0, ...B.map(x => ({ g: 'Businesses at a property', label: nc(x.n), href: `#/property/${x.p.id}`, sub: `${x.src} · at ${addrOf(x.p)}, ${cityOf(x.p)}`, tag: 'Business' }))); } catch { }
+  return out;
+}
+function bindSmartSearch() {
+  const old = document.getElementById('gsearch'), box = document.getElementById('gresults'); if (!old || !box || old.dataset.smart) return;
+  const inp = old.cloneNode(true); old.replaceWith(inp); inp.dataset.smart = '1';
+  inp.placeholder = 'Search address, owner, town, business, PIN, or ask anything';
+  let items = [], sel = 0, t, seq = 0;
+  const open = it => { if (!it) return; if (it.g !== 'Ask' && it.g !== 'Recent') recentAdd([it.label, it.href, it.sub, it.tag]); box.classList.add('hidden'); inp.value = ''; inp.blur(); location.hash = it.href; };
+  const draw = () => {
+    if (!items.length) { box.innerHTML = '<div class="muted pad">Start typing an address, owner, town or business</div>'; box.classList.remove('hidden'); return; }
+    let g = '', h = '';
+    items.forEach((it, i) => { if (it.g !== g) { g = it.g; if (g !== 'Ask') h += `<div class="ss-g">${esc(g)}</div>`; } h += `<a href="${esc(it.href)}" class="ss-i${i === sel ? ' on' : ''}" data-i="${i}"><span class="ss-tag">${esc(it.tag || '')}</span><span class="ss-m"><b>${esc(it.label)}</b><small>${esc(it.sub || '')}</small></span>${it.score != null ? `<span class="ss-r">${it.stack >= 3 ? `<span class="ss-st" title="${it.stack} signals stacked">${it.stack}</span>` : ''}${scorePill(it.score)}</span>` : ''}</a>`; });
+    box.innerHTML = h + '<div class="ss-ft"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div>'; box.classList.remove('hidden');
+    box.querySelectorAll('.ss-i').forEach(a => { a.onclick = e => { e.preventDefault(); open(items[+a.dataset.i]); }; a.onmousemove = () => { if (sel !== +a.dataset.i) { sel = +a.dataset.i; box.querySelectorAll('.ss-i').forEach(x => x.classList.toggle('on', +x.dataset.i === sel)); } }; });
+    const on = box.querySelector('.ss-i.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+  };
+  const run = async () => { const my = ++seq, v = inp.value; items = smartResults(v); sel = 0; draw(); const withB = await withBusinesses(v, items.slice()); if (my === seq) { items = withB; draw(); } };
+  inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 110); });
+  inp.addEventListener('focus', () => run());
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { sel = Math.min(items.length - 1, sel + 1); draw(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); draw(); e.preventDefault(); }
+    else if (e.key === 'Enter') { e.preventDefault(); open(items[sel]); }
+    else if (e.key === 'Escape') { box.classList.add('hidden'); inp.blur(); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement?.tagName || '')) { e.preventDefault(); inp.focus(); } });
+}
+
+// ---------- Navigation: every section gets its own place (no "More" catch-all) ----------
+// Laptop: a permanent left sidebar with every screen, grouped, with live counts.
+// iPhone: bottom tabs stay; the last tab opens a slide-up menu with every screen, one tap away.
+const I_ = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const IC = {
+  today: 'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V9h14zM7 11h5v5H7z',
+  stack: 'M12 2l10 5-10 5L2 7zm0 13l-8-4-2 1 10 5 10-5-2-1zm0-4l-8-4-2 1 10 5 10-5-2-1z',
+  off: 'M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z',
+  phone: 'M6.6 10.8a15 15 0 006.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 013 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z',
+  search: 'M15.5 14h-.8l-.3-.3A6.5 6.5 0 1016 9.5a6.5 6.5 0 01-1.6 4.2l.3.3v.8l5 5 1.5-1.5zm-6 0A4.5 4.5 0 1114 9.5 4.5 4.5 0 019.5 14z',
+  ask: 'M12 2a10 10 0 100 20 10 10 0 000-20zm1 17h-2v-2h2zm2.1-7.8l-.9.9A3.4 3.4 0 0013 15h-2v-.5a4 4 0 011.2-2.8l1.2-1.3A2 2 0 0014 9a2 2 0 00-4 0H8a4 4 0 018 0 3.2 3.2 0 01-.9 2.2z',
+  fu: 'M13 3a9 9 0 00-9 9H1l4 4 4-4H6a7 7 0 117 7 7 7 0 01-4.9-2l-1.4 1.4A9 9 0 1013 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z',
+  lease: 'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V9h14z',
+  tpl: 'M14 2H6a2 2 0 00-2 2v16c0 1.1.9 2 2 2h12a2 2 0 002-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z',
+  owner: 'M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-3 0-8 1.5-8 4.5V21h16v-2.5c0-3-5-4.5-8-4.5z',
+  buyer: 'M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z',
+  tenant: 'M12 7V3H2v18h20V7zM6 19H4v-2h2zm0-4H4v-2h2zm0-4H4V9h2zm0-4H4V5h2zm4 12H8v-2h2zm0-4H8v-2h2zm0-4H8V9h2zm0-4H8V5h2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8z',
+  occ: 'M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z',
+  slb: 'M4 10h16v10H4zM12 3l9 6H3z',
+  brief: 'M4 4h16v2H4zm0 4h10v2H4zm0 4h16v2H4zm0 4h10v2H4z',
+  comps: 'M3 17h4V9H3zm7 0h4V5h-4zm7 0h4v-6h-4zM3 21h18v-2H3z',
+  near: 'M12 2a7 7 0 00-7 7c0 5.3 7 13 7 13s7-7.7 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z',
+  star: 'M12 17.3l-6.18 3.7 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.73 1.64 7.03z',
+  list: 'M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z',
+  cmp: 'M10 3H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h5zm2 0v18h7a2 2 0 002-2V5a2 2 0 00-2-2z',
+  stats: 'M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z',
+  tools: 'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z',
+  moon: 'M12 3a9 9 0 109 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0112.4 3.1 9 9 0 0012 3z',
+};
+const NAVG = [
+  ['Work', [['today', 'Today', IC.today, 'due'], ['stack', 'Stacked deals', IC.stack, 'stacked'], ['offmarket', 'Off-Market sellers', IC.off], ['prospect', 'Call list', IC.phone], ['crm', 'Follow-ups & activity', IC.fu, 'due'], ['templates', 'Templates & letters', IC.tpl]]],
+  ['Properties', [['properties', 'Search properties', IC.search], ['ask', 'Ask (smart search)', IC.ask], ['near', 'Near me', IC.near], ['favs', 'Saved properties', IC.star], ['lists', 'Saved lists', IC.list], ['compare', 'Compare', IC.cmp]]],
+  ['People', [['owners', 'Owners', IC.owner], ['requirements', 'Buyers & requirements', IC.buyer], ['companies', 'Tenants', IC.tenant], ['occupants', "Who's inside", IC.occ], ['slb', 'Sale-leasebacks', IC.slb, 'slb']]],
+  ['Market', [['leases', 'Lease tracker', IC.lease, 'lease12'], ['brief', 'Market brief', IC.brief], ['comps', 'Comps & listings', IC.comps]]],
+  ['You', [['stats', 'Stats', IC.stats], ['tools', 'Settings & backup', IC.tools]]],
+];
+const ACTIVE = { property: 'properties', owner: 'owners', company: 'companies', requirement: 'requirements', command: 'offmarket' };
+const routeKey = () => { const r = (location.hash.replace(/^#\/?/, '') || 'today').split('/')[0]; return ACTIVE[r] || r; };
+async function navCounts() {
+  const k = kpis(); let due = 0; try { due = (await import('./plan.js')).dueCount(); } catch { }
+  return { due, stacked: k.stacked, slb: k.slb, lease12: k.lease12 };
+}
+const navLinks = (C = {}) => NAVG.map(([g, L]) => `<div class="pn-g">${g}</div>${L.map(([k, l, ic, c]) => `<a href="#/${k}" data-nk="${k}">${I_(ic)}<span>${l}</span>${c && C[c] ? `<em class="${c === 'due' ? 'due' : ''}">${C[c] > 999 ? (C[c] / 1000).toFixed(1) + 'k' : C[c]}</em>` : ''}</a>`).join('')}`).join('');
+function markActive() { const k = routeKey(); document.querySelectorAll('[data-nk]').forEach(a => a.classList.toggle('on', a.dataset.nk === k)); }
+async function paintNav() {
+  const C = await navCounts().catch(() => ({}));
+  const side = document.querySelector('.pr-side .pn-links'); if (side) side.innerHTML = navLinks(C);
+  const sheet = document.querySelector('.pr-sheet .pn-links'); if (sheet) sheet.innerHTML = navLinks(C);
+  markActive();
+}
+function bindNav() {
+  if (document.querySelector('.pr-side')) return;
+  const tn = document.querySelector('.topnav'); if (!tn) return;
+  const side = document.createElement('aside'); side.className = 'pr-side'; side.setAttribute('aria-label', 'Main navigation');
+  side.innerHTML = `<nav class="pn-links">${navLinks()}</nav><div class="pn-foot"><button type="button" class="pn-theme">${I_(IC.moon)}<span>Dark / light</span></button><div class="pn-data" id="pn-data"></div></div>`;
+  document.body.appendChild(side); document.body.classList.add('pr-nav');
+  const setH = () => document.documentElement.style.setProperty('--pr-tn', tn.getBoundingClientRect().height + 'px'); setH(); window.addEventListener('resize', setH);
+  side.querySelector('.pn-theme').onclick = () => window.__omiTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+  if (S.meta) side.querySelector('#pn-data').textContent = `Public data updated ${S.meta.generated} CT`;
+  // phone: last bottom tab becomes "Menu" and opens a slide-up sheet instead of a separate page
+  const sheet = document.createElement('div'); sheet.className = 'pr-sheet hidden'; sheet.innerHTML = `<div class="pr-sheet-bd"></div><div class="pr-sheet-p" role="dialog" aria-label="Menu"><div class="pr-grab"></div><nav class="pn-links">${navLinks()}</nav><button type="button" class="pn-theme">${I_(IC.moon)}<span>Dark / light</span></button></div>`;
+  document.body.appendChild(sheet);
+  const close = () => { sheet.classList.remove('open'); setTimeout(() => sheet.classList.add('hidden'), 220); };
+  const openSheet = () => { sheet.classList.remove('hidden'); requestAnimationFrame(() => sheet.classList.add('open')); paintNav(); };
+  sheet.querySelector('.pr-sheet-bd').onclick = close; sheet.addEventListener('click', e => { if (e.target.closest('a')) close(); });
+  sheet.querySelector('.pn-theme').onclick = () => { window.__omiTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); close(); };
+  const more = document.querySelector('.mnav a[data-r="more"]');
+  if (more) { const svg = more.querySelector('svg'); more.textContent = ''; if (svg) more.appendChild(svg); more.append('Menu'); more.addEventListener('click', e => { e.preventDefault(); openSheet(); }); }
+  window.addEventListener('hashchange', () => { markActive(); });
+  paintNav();
 }
