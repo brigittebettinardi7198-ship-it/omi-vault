@@ -1,3 +1,4 @@
+import { leaseList } from './adv.js';
 import { nc } from './extras.js';
 import { $, $$, esc, fmt, money, kmoney, today, addDays, d8, badge, CONF, toast, toCSV, download, uid, scorePill, loadScript, daysBetween } from './util.js';
 import { S, save, remove, val, OPT, STAGES, ownerProps, activitiesFor, setting, setSetting, addFollowup, FIELDS, FBY, loadAll } from './store.js';
@@ -84,7 +85,7 @@ export async function requirement(el, id) {
 // ================= TENANTS / COMPANIES =================
 export async function companies(el) {
   const rows = [...S.companies.values()];
-  el.innerHTML = `<div class="page"><div class="ph"><div><h1>Tenants & companies</h1><div class="muted">Tenants and occupiers you track. Expansion signals are entered by you; nothing is monitored automatically.</div></div><div class="ph-act"><button class="btn primary" id="addc">+ Company</button><button class="btn ghost" id="exp">Export CSV</button></div></div><div id="ct"></div></div>`;
+  el.innerHTML = `<div class="page"><div class="ph"><div><h1>Tenants & companies</h1><div class="muted">Tenants and occupiers you track. Expansion signals are entered by you; nothing is monitored automatically.</div></div><div class="ph-act"><a class="btn" href="#/occupants">Who's inside</a><button class="btn primary" id="addc">+ Company</button><button class="btn ghost" id="exp">Export CSV</button></div></div><div id="ct"></div></div>`;
   table($('#ct'), rows, [
     { k: 'e', l: 'Expansion', h: c => scorePill(expansion(c).score), v: c => expansion(c).score },
     { k: 'name', l: 'Company', h: c => `<a href="#/company/${c.id}">${esc(c.name)}</a>${c.sample ? ' <span class="tag">SAMPLE</span>' : ''}`, v: c => c.name },
@@ -125,6 +126,13 @@ export async function leases(el, id, pid) {
     { k: 'c', l: 'Confidence', h: x => badge(x.l.conf || 'unknown') }, { k: 'o', l: 'Outreach by', h: x => esc(x.i.outreach || ''), v: x => x.i.outreach || '' },
     { k: 'ed', l: '', h: x => `<button class="btn sm ghost" data-edit="${x.l.id}">Edit</button>` },
   ], { sort: 'u', empty: 'No leases yet.' });
+  { const LL = leaseList(); const box = document.createElement('div'); box.innerHTML = `<h2 class="sh">Likely lease expirations <span class="conf c-inf">Estimated</span></h2><div class="muted xs">${LL.length} properties with an anniversary 6–24 months out of a buildout permit, sale-leaseback or tenant-occupied sale. Not a known lease date; confirm by calling.</div><div id="llt"></div>`; $('#lt').after(box);
+    table($('#llt'), LL, [
+      { k: 'd', l: 'Est. date', h: x => esc(x.f.due.slice(0, 7)), v: x => x.f.due },
+      { k: 'p', l: 'Property', h: x => `<a href="#/property/${x.p.id}">${esc(val(x.p, 'address') || x.p.pin)}</a> <span class="xs muted">${esc(val(x.p, 'city') || '')}</span>` , v: x => val(x.p, 'address') || '' },
+      { k: 'r', l: 'Why (triggering record)', h: x => esc(x.f.yrs + '-yr anniversary of ' + x.f.trig) },
+      { k: 'c', l: '', h: x => `<button class="btn sm" data-call="${x.p.id}">Call</button>` },
+    ], { sort: 'd', empty: 'No estimated expirations.' }); }
   $$('[data-edit]', el).forEach(b => b.onclick = () => leaseForm(S.leases.get(b.dataset.edit)));
   $('#addl').onclick = () => leaseForm({ id: uid('l'), expType: 'estimated', conf: 'estimated' }, true);
   if (id === 'new') leaseForm({ id: uid('l'), propertyId: (location.hash.split('/')[3]) || '', expType: 'estimated', conf: 'estimated' }, true);

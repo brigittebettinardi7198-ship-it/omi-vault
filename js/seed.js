@@ -60,6 +60,7 @@ export async function ensureSeed(progress = () => {}) {
   await db.putMany('properties', out);
   await db.putMany('owners', ownersOut);
   if (!S.templates.size) await db.putMany('templates', DEFAULT_TEMPLATES);
+  else { const miss = DEFAULT_TEMPLATES.filter(t => t.id === 't_slb' && !S.templates.has(t.id)); if (miss.length) { await db.putMany('templates', miss); miss.forEach(t => S.templates.set(t.id, t)); } }
   await loadAll();
   await setSetting('seedGenerated', meta.generated);
   await migrateV1();

@@ -9,7 +9,21 @@ import { nearbySales } from './comps.js';
 import { sfOf } from './scoring.js';
 
 // ---------- BOV block: nearest real recorded sales with $/SF and an ESTIMATED value range ----------
-function bovHTML(p) {
+function bovHTML(p) { return compsBOV(p) + incomeBOV(p) + brokerBlock(); }
+function incomeBOV(p) {
+  const c = p.cval; if (!c || !(+c.rent)) return '';
+  const so = sfOf(p), noiSf = c.rent * (1 - (c.vac || 0)) * 0.9, vsf = c.mvsf || (c.cap ? noiSf / c.cap : 0);
+  const pct = x => x != null ? Math.round(x * 1000) / 10 + '%' : '–';
+  return `<h2>Income approach <span class="ops">ESTIMATE · Cook County Assessor ${c.y} commercial valuation${c.twp ? ', ' + esc(c.twp) + ' township' : ''}</span></h2>
+  <table class="op-t"><tr><th>Market rent</th><td>$${(+c.rent).toFixed(2)}/SF/yr</td></tr><tr><th>Vacancy</th><td>${pct(c.vac)}</td></tr><tr><th>Cap rate</th><td>${pct(c.cap)}</td></tr>${c.g ? `<tr><th>Assessor grade</th><td>${esc(c.g)}</td></tr>` : ''}
+  <tr><th>Value / SF</th><td>${vsf ? '$' + Math.round(vsf) : '–'}${c.mvsf ? '' : ' (rent less vacancy and ~10% expenses ÷ cap)'}</td></tr>
+  ${vsf && so.sf ? `<tr><th>Indicated value</th><td><b>${money(Math.round(vsf * so.sf / 1e4) * 1e4)}</b> on ${fmt(so.sf)} SF${so.est ? ' (SF estimated from roof footprint)' : ''}</td></tr>` : ''}</table>`;
+}
+function brokerBlock() {
+  const b = setting('profile', {}) || {}; if (!b.name && !b.phone && !b.email) return '<div class="op-brk muted">Add your name, phone and email in Settings to sign this report.</div>';
+  return `<div class="op-brk"><b>Prepared by ${esc(b.name || '')}</b>${b.company ? ' · ' + esc(b.company) : ''}${b.phone ? ' · ' + esc(b.phone) : ''}${b.email ? ' · ' + esc(b.email) : ''}</div>`;
+}
+function compsBOV(p) {
   const so = sfOf(p), cs = nearbySales(p, 8).filter(c => c.psf > 0).slice(0, 5);
   if (!cs.length) return '<h2>Broker opinion of value</h2><div>No nearby recorded sales with a usable $/SF, so no value range is shown.</div>';
   const v = cs.map(c => c.psf).sort((a, b) => a - b), q = f => v[Math.min(v.length - 1, Math.max(0, Math.round(f * (v.length - 1))))];

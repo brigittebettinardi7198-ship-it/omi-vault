@@ -3,6 +3,7 @@ import { favBtn, isFav, favIds } from './favs.js';
 import { lstatBadge, lstatControl, lstatMatch, LSF } from './lstat.js';
 import { likelyBuyersHTML, likelyBuyers } from './buyers.js';
 import { investHTML, bindInvest } from './invest.js';
+import { occupantHTML, occupants, leaseFlag, leaseTxt, appealPoint, letterHTML, printHTML, printLetters, letterTarget } from './adv.js';
 import { TYPE4, isType, typeCounts, officeProps, loadOffice, phonesHTML, siteHTML, dcOf, iosOf, jumpHTML, appealHTML, shortWhy, nc, statsHTML, bindStats, statsLine, oppHTML, bindOpp, intelPane, cpermHTML, cvalHTML, networkHTML, cmpIds, cmpToggle, addToListModal, floodLayer } from './extras.js';
 import { $, $$, esc, fmt, money, kmoney, today, addDays, daysBetween, d8, badge, CONF, toast, toCSV, download, uid, scorePill, normName, scoreColor, SCORE_BANDS } from './util.js';
 import { S, save, val, conf, FIELDS, FBY, OPT, STAGES, CLOSED_STAGES, MOTIVATIONS, ownerProps, propLeases, ownerFollowups, activitiesFor, setting, setSetting, idx, addFollowup, addActivity } from './store.js';
@@ -180,7 +181,7 @@ export async function prospect(el, startId) {
 }
 
 // ================= PROPERTIES =================
-const PF = { county: '', q: '', type: '', minSf: '', minAc: '', minScore: '', buyer: false, fresh: false, noContact: false, dc: false, ios: false, favs: false, pt: [], ls: '' };
+const PF = { county: '', q: '', type: '', minSf: '', minAc: '', minScore: '', buyer: false, fresh: false, noContact: false, dc: false, ios: false, favs: false, pt: [], ls: '', lease: false };
 // all available list columns; the column chooser stores the visible set in settings
 const PCOLS = (sc, mm) => [
   { k: 'pr', l: 'Priority', h: p => `<b class="rank">${priorityOf(p)}</b>`, v: p => priorityOf(p) },
@@ -210,14 +211,14 @@ export async function properties(el) {
   const ALL = PCOLS(sc, mm), shownK = setting('propCols5', null) || ALL.filter(c => c.def).map(c => c.k);
   const chip = (id, on, label) => `<button class="fchip ${on ? 'on' : ''}" data-chip="${id}">${label}</button>`;
   const ptc = typeCounts(), ptChips = () => TYPE4.map(([k, l]) => `<button class="fchip ${PF.pt.includes(k) ? 'on' : ''}" data-pt="${k}" aria-pressed="${PF.pt.includes(k)}">${l}${ptc[k] != null ? ` <span class="xs muted">${fmt(ptc[k])}</span>` : k === 'office' ? ' <span class="xs muted">Cook</span>' : ''}</button>`).join('');
-  const nAct = [PF.county, PF.type, PF.minScore, PF.buyer, PF.fresh, PF.noContact, PF.dc, PF.ios, PF.favs, PF.pt.length, PF.ls, PF.minSf, PF.minAc].filter(Boolean).length + (big ? 1 : 0);
+  const nAct = [PF.county, PF.type, PF.minScore, PF.buyer, PF.fresh, PF.noContact, PF.dc, PF.ios, PF.favs, PF.pt.length, PF.ls, PF.lease, PF.minSf, PF.minAc].filter(Boolean).length + (big ? 1 : 0);
   el.innerHTML = `<div class="page wide ${view === 'map' ? 'mapmode' : ''}"><div class="ph"><div><h1>Properties</h1><div class="muted" id="pcount"></div></div>
     <div class="ph-act"><button class="btn ${PF.favs ? 'primary' : ''}" data-chip="favs" aria-pressed="${PF.favs}">★ Favorites${favIds().length ? ' · ' + favIds().length : ''}</button><a class="btn" href="#/near">◎ Near me</a>${view !== 'map' ? '<button class="btn ghost colsb2" id="colsb">Columns</button>' : ''}<div class="seg" role="group" aria-label="View">${[['map', 'Map'], ['list', 'List'], ['split', 'Split']].map(([k, l]) => `<button class="${view === k ? 'on' : ''}" data-view="${k}">${l}</button>`).join('')}</div></div></div>
     <div class="pbar2"><input id="fq" placeholder="Search address, city, owner or PIN" value="${esc(PF.q)}">
       <details class="moref pfilt" ${OPENF ? 'open' : ''}><summary class="btn">More filters${nAct ? ` · ${nAct}` : ''}</summary>
         <div class="pf-panel"><div class="pf-row">${bigToggle()}</div>
           <div class="pf-lbl">County</div><div class="chips fchips">${chip('county:', !PF.county, 'All')}${Object.keys(MARKET.counties).map(c => chip('county:' + c, PF.county === c, c)).join('')}</div>
-          <div class="pf-lbl">Show</div><div class="chips fchips">${chip('type:bldg', PF.type === 'bldg', 'Buildings')}${chip('type:land', PF.type === 'land', 'Land')}${chip('score', PF.minScore === '70', 'Score 70+')}${chip('buyer', PF.buyer, 'Buyer match')}${chip('fresh', PF.fresh, 'Fresh change')}${chip('noContact', PF.noContact, 'No verified contact')}${chip('dc', PF.dc, 'Data center site')}${chip('ios', PF.ios, 'Outdoor storage land')}</div>
+          <div class="pf-lbl">Show</div><div class="chips fchips">${chip('type:bldg', PF.type === 'bldg', 'Buildings')}${chip('type:land', PF.type === 'land', 'Land')}${chip('score', PF.minScore === '70', 'Score 70+')}${chip('buyer', PF.buyer, 'Buyer match')}${chip('fresh', PF.fresh, 'Fresh change')}${chip('noContact', PF.noContact, 'No verified contact')}${chip('dc', PF.dc, 'Data center site')}${chip('ios', PF.ios, 'Outdoor storage land')}${chip('lease', PF.lease, 'Likely lease expiring (Estimated)')}</div>
           <div class="pf-lbl">Property type <span class="xs muted">(any selected)</span></div><div class="chips fchips">${ptChips()}</div>
           <div class="pf-lbl">Listing status <span class="xs muted">(set by you)</span></div><div class="chips fchips">${LSF.map(([k, l]) => `<button class="fchip ${PF.ls === k ? 'on' : ''}" data-ls="${k}" aria-pressed="${PF.ls === k}">${l}</button>`).join('')}</div>
           <div class="pf-lbl">Minimums</div><div class="mf-b"><input id="fsf" type="number" inputmode="numeric" placeholder="Min SF" value="${PF.minSf}"><input id="fac" type="number" inputmode="decimal" placeholder="Min acres" value="${PF.minAc}"><input id="fsc" type="number" inputmode="numeric" placeholder="Min score" value="${PF.minScore}"></div>
@@ -237,7 +238,7 @@ export async function properties(el) {
       if (PF.type === 'land' && !p.vac) return false; if (PF.type === 'bldg' && p.vac) return false;
       if (PF.minSf && sfOf(p).sf < +PF.minSf) return false; if (PF.minAc && d.acres < +PF.minAc) return false;
       if (PF.minScore && sc.get(p.id).score < +PF.minScore) return false; if (PF.buyer && !mm.has(p.id)) return false;
-      if (PF.fresh && !S.chg.has(p.id)) return false; if (PF.noContact && contactFound(S.owners.get(p.ownerId))) return false; if (PF.dc && !dcOf(p)) return false; if (PF.favs && !favSet.has(p.id)) return false; if (PF.pt.length && !PF.pt.some(k => isType(p, k))) return false; if (PF.ios && !iosOf(p)) return false; if (PF.ls && !lstatMatch(p, PF.ls)) return false;
+      if (PF.fresh && !S.chg.has(p.id)) return false; if (PF.noContact && contactFound(S.owners.get(p.ownerId))) return false; if (PF.dc && !dcOf(p)) return false; if (PF.favs && !favSet.has(p.id)) return false; if (PF.pt.length && !PF.pt.some(k => isType(p, k))) return false; if (PF.ios && !iosOf(p)) return false; if (PF.ls && !lstatMatch(p, PF.ls)) return false; if (PF.lease && !leaseFlag(p)) return false;
       if (q && !(((val(p, 'address') || '') + ' ' + (val(p, 'city') || '') + ' ' + (val(p, 'taxpayer') || '') + ' ' + oName(p.ownerId)).toLowerCase().includes(q) || (dq.length >= 6 && String(p.pin).replace(/\D/g, '').includes(dq)))) return false;
       return true;
     });
@@ -359,6 +360,7 @@ export async function property(el, id) {
     ['intel', 'News & area', '', panes.intel],
     ['research', 'Research & listing check', '', panes.research],
     ['invest', 'Investment (estimate)', '', investHTML(p)],
+    ['occ', "Who's inside (likely occupants)", (() => { const n = occupants(p).length; return n ? n + ' found' : ''; })(), occupantHTML(p)],
     ['activity', 'Activity & notes', '', panes.activity],
   ];
   // CoStar-style header + 4 stat tiles + tabs. Every former section is still here, grouped under a tab (nothing removed).
@@ -370,7 +372,8 @@ export async function property(el, id) {
     <div class="crumb"><a href="#/properties">Properties</a> / ${esc(val(p, 'county') || '')}</div>
     <div class="phead5"><div class="ph5-l"><h1>${esc(nc(val(p, 'address') || p.pin || 'Property'))} ${favBtn(p.id, 'lg')}</h1><div class="ph5-sub">${sub}</div>
         <div class="bigacts"><button class="bact primary" data-call="${p.id}"><span aria-hidden="true">✆</span>Call</button><button class="bact" data-fav="${p.id}" data-favlabel="1" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '★ Saved' : '☆ Save'}</button>${p.lat ? `<a class="bact" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}"><span aria-hidden="true">➤</span>Directions</a>` : ''}</div>
-        <div class="ph-act"><button class="btn ghost" id="bovq">BOV one-pager</button><details class="actmore"><summary class="btn">More</summary><div class="actmenu"><select id="prio">${['', 'A', 'B', 'C'].map(x => `<option value="${x}" ${x === (p.priority || '') ? 'selected' : ''}>${x ? 'Priority ' + x : 'No priority'}</option>`).join('')}</select><button class="btn ghost" id="onep">BOV one-pager (print / PDF)</button><button class="btn ghost" id="edit">Edit fields</button><button class="btn ghost" id="lstat">Listing status</button><button class="btn ghost" id="pfly">Paste flyer</button><button class="btn ghost" id="cmpb">${cmpIds().includes(p.id) ? 'Remove from compare' : 'Add to compare'}</button><button class="btn ghost" id="lstb">Save to list…</button><a class="btn ghost" href="#/compare">Open compare (${cmpIds().length})</a>${[['Street View', lk('Street View')], ['Google Maps', lk('Google Maps')], ['Aerial view', p.lat ? `https://www.google.com/maps/@${p.lat},${p.lon},300m/data=!3m1!1e3` : null]].filter(x => x[1]).map(([l, u]) => `<a class="btn ghost" target="_blank" rel="noopener" href="${esc(u)}">${l} ↗</a>`).join('')}</div></details></div></div>
+        ${(() => { const tp = [appealPoint(p), leaseFlag(p) && leaseTxt(leaseFlag(p))].filter(Boolean); return tp.length ? `<ul class="tpoints">${tp.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''; })()}
+        <div class="ph-act"><button class="btn ghost" id="bovq">BOV one-pager</button><button class="btn ghost" id="lettq">Owner letter</button><details class="actmore"><summary class="btn">More</summary><div class="actmenu"><select id="prio">${['', 'A', 'B', 'C'].map(x => `<option value="${x}" ${x === (p.priority || '') ? 'selected' : ''}>${x ? 'Priority ' + x : 'No priority'}</option>`).join('')}</select><button class="btn ghost" id="onep">BOV one-pager (print / PDF)</button><button class="btn ghost" id="edit">Edit fields</button><button class="btn ghost" id="lstat">Listing status</button><button class="btn ghost" id="pfly">Paste flyer</button><button class="btn ghost" id="cmpb">${cmpIds().includes(p.id) ? 'Remove from compare' : 'Add to compare'}</button><button class="btn ghost" id="lstb">Save to list…</button><a class="btn ghost" href="#/compare">Open compare (${cmpIds().length})</a>${[['Street View', lk('Street View')], ['Google Maps', lk('Google Maps')], ['Aerial view', p.lat ? `https://www.google.com/maps/@${p.lat},${p.lon},300m/data=!3m1!1e3` : null]].filter(x => x[1]).map(([l, u]) => `<a class="btn ghost" target="_blank" rel="noopener" href="${esc(u)}">${l} ↗</a>`).join('')}</div></details></div></div>
       <div class="pmap ph5-map"><div id="minimap"></div></div></div>
     <div class="tiles4"><div><span>Building SF</span><b>${sizeTxt}</b></div><div><span>Est. value</span><b>${kmoney(d.value) || '–'}</b></div><div><span>Owner</span><b>${o ? `<a href="#/owner/${o.id}">${esc(nc(o.name))}</a>` : esc(nc(val(p, 'taxpayer') || '–'))}</b></div>
       <div class="scoreline"><span>Chance to sell</span><b>${scorePill(sc.score)}${scoreHelpBtn()}</b><small>${esc(why1 || 'Few public-record signals')}</small></div></div>
@@ -382,6 +385,7 @@ export async function property(el, id) {
   if (window.L && p.lat) { const m = L.map('minimap', { zoomControl: false, attributionControl: false, dragging: !matchMedia('(pointer: coarse)').matches, scrollWheelZoom: false }).setView([p.lat, p.lon], 16); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m); L.circleMarker([p.lat, p.lon], { radius: 8, color: '#fff', weight: 2, fillColor: '#e5484d', fillOpacity: 1 }).addTo(m); }
   $('#onep').onclick = () => import('./sheets.js').then(M => M.printOnePager(p));
   $('#bovq').onclick = () => import('./sheets.js').then(M => M.printOnePager(p));
+  $('#lettq').onclick = () => printHTML(letterHTML(p));
   $('#cmpb').onclick = () => { const on = cmpToggle(p.id); $('#cmpb').textContent = on ? 'Remove from compare' : 'Add to compare'; };
   $('#lstb').onclick = () => addToListModal(p.id);
   $('#prio').onchange = async e => { p.priority = e.target.value; await save('properties', p); toast('Saved'); };

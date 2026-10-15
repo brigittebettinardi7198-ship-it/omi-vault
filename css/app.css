@@ -659,3 +659,19 @@ input,select,textarea{font-size:16px}                       /* iOS: no zoom on f
 .fk{flex:none;font-size:11px;font-weight:700;border-radius:6px;padding:3px 6px;background:#f1f5f9;color:#334155}.fk-sale{background:#dcfce7;color:#166534}.fk-owner{background:#e0e7ff;color:#3730a3}
 .pcall.feed .favb{flex:none}.nbr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #f1f5f9}.nbr .btn{min-height:40px}
 .feedmore>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:#2563eb;font-weight:600}
+/* adv: talking points, occupants, letters, labels, value report */
+.tpoints{margin:8px 0;padding:8px 12px 8px 26px;background:#fff8e6;border-radius:10px;font-size:14px}
+.tpoints li{margin:2px 0}
+.occ li{margin:4px 0}
+.op-brk{margin-top:14px;padding-top:8px;border-top:1px solid #ccc;font-size:13px}
+#printsheet .lpage{break-after:page;page-break-after:always}
+#printsheet .lpage:last-child{break-after:auto;page-break-after:auto}
+@media print{
+  @page{margin:.5in}
+  @page labels{margin:0}
+  #printsheet .avery{page:labels}
+  .op h2,.op table{break-inside:avoid}
+  #printsheet .avery{width:8.5in;padding:.5in .1875in 0;display:grid;grid-template-columns:repeat(3,2.625in);grid-auto-rows:1in;column-gap:.125in;box-sizing:border-box}
+}
+#printsheet .avery{display:grid;grid-template-columns:repeat(3,2.625in);grid-auto-rows:1in;column-gap:.125in}
+#printsheet .lbl{padding:.08in .15in;font:11px/1.25 -apple-system,system-ui,sans-serif;overflow:hidden}

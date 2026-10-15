@@ -1,3 +1,4 @@
+import { leaseFlag, leaseTxt, appealPoint } from './adv.js';
 import { S, val, setting, ownerProps, propLeases, ownerFollowups, idx, CLOSED_STAGES, MOTIVATIONS } from './store.js';
 import { today, daysBetween, addMonths } from './util.js';
 import { MARKET } from './markets.js';
@@ -15,6 +16,7 @@ export const WEIGHT_DEFS = [
   ['distress', 'Open Chicago building violations or vacant-building 311 complaints', 8, 'bonus'],
   ['closing', 'IL WARN plant-closing / layoff notice at the address', 12, 'bonus'], ['taxDelinqPub', 'Listed in Cook Clerk 20-yr delinquent-tax file (may be resolved)', 6, 'bonus'],
   ['loanMaturity', 'SBA 504 loan estimated to mature within 24 months', 6, 'bonus'], ['distressSale', 'Distressed sale on record (court / REO / short / auction, PTAX)', 4, 'bonus'],
+  ['leasePredict', 'Estimated lease expiration 6–24 months out (anniversary of a buildout permit, sale-leaseback or tenant-occupied sale)', 6, 'bonus'], ['taxAppeal', 'Appealed taxes recently (Cook Assessor appeal, last 2 years)', 3, 'bonus'],
   ['freshChange', 'Fresh public-record change (new owner, sale, mailing address) in last 120 days', 10, 'broker'],
 ];
 // "What changed" events from scheduled refreshes, for one parcel
@@ -101,6 +103,8 @@ export function offMarket(p, W = weights()) {
   if (p.warn) { const cl = /clos/i.test(p.warn); const pts = W.closing * (cl ? 1 : .5); pubBonus += pts; R.push({ text: (cl ? 'Plant closing notice: ' : 'Layoff notice: ') + p.warn + ' (source: IL WARN reports)', kind: 'fact', pts }); }
   if (p.tdel && val(p, 'taxDelinquent') !== 'Yes') { pubBonus += W.taxDelinqPub; R.push({ text: `Listed in the Cook County Clerk 20-year delinquent-tax file dated ${p.tdel}. It may since have been paid, so check the Clerk's site for current status`, kind: 'fact', pts: W.taxDelinqPub }); }
   if (p.sbamat) { const m = daysBetween(now, p.sbamat + '-01') / 30.4; if (m >= -6 && m <= 24) { const pts = W.loanMaturity; pubBonus += pts; R.push({ text: `SBA 504 loan matures about ${p.sbamat} (ESTIMATE: approval date + term; may be paid off early). Refinance or sale decision coming`, kind: 'estimated', pts }); } }
+  { const lf = leaseFlag(p); if (lf) { pubBonus += W.leasePredict; R.push({ text: leaseTxt(lf), kind: 'estimate', pts: W.leasePredict }); } }
+  { const ap = appealPoint(p); if (ap) { pubBonus += W.taxAppeal; R.push({ text: ap.split(':')[0], kind: 'fact', pts: W.taxAppeal }); } }
   if (p.dsale && p.ptd && daysBetween(p.ptd, now) <= 3 * 365) { pubBonus += W.distressSale; R.push({ text: 'Distressed sale on record (PTAX-203): ' + p.dsale, kind: 'fact', pts: W.distressSale }); }
   if (p.ptadv === 'No' && p.ptd) R.push({ text: `Last sale (${p.ptd}) was NOT advertised per the PTAX-203 filing: an off-market deal${p.buyer ? '. Buyer ' + p.buyer + ' buys off-market' : ''}`, kind: 'fact', pts: 0 });
   if (p.slb) R.push({ text: `Sale-leaseback recorded ${p.slb} (PTAX-203): the seller likely stayed as tenant. Typical terms run 10–20 yrs (estimate)`, kind: 'fact', pts: 0 });
