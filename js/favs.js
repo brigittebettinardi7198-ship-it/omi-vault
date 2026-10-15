@@ -10,7 +10,7 @@ export function bindFavs() {
   if (bound) return; bound = true;
   const h = e => { const b = e.target.closest && e.target.closest('[data-fav]'); if (!b) return; if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault(); e.stopPropagation(); const id = b.dataset.fav, on = toggleFav(id);
-    $$(`[data-fav="${CSS.escape(id)}"]`).forEach(x => { x.classList.toggle('on', on); x.textContent = on ? '★' : '☆'; x.setAttribute('aria-pressed', on); x.setAttribute('aria-label', (on ? 'Remove from' : 'Add to') + ' favorites'); x.title = x.getAttribute('aria-label'); });
+    $$(`[data-fav="${CSS.escape(id)}"]`).forEach(x => { x.classList.toggle('on', on); x.textContent = x.dataset.favlabel ? (on ? '★ Saved' : '☆ Save') : on ? '★' : '☆'; x.setAttribute('aria-pressed', on); x.setAttribute('aria-label', (on ? 'Remove from' : 'Add to') + ' favorites'); x.title = x.getAttribute('aria-label'); });
     toast(on ? 'Added to Favorites' : 'Removed from Favorites'); };
   document.addEventListener('click', h, true); document.addEventListener('keydown', h, true);
 }

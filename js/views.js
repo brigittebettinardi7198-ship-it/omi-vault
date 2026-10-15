@@ -91,7 +91,7 @@ export async function command(el) {
     { k: 'buyer', l: 'Buyer / requirement', h: x => `<a href="#/requirement/${x.r.id}">${esc(x.r.name)}</a><div class="xs muted">${esc(x.r.dealType || '')}</div>`, v: x => x.r.name },
     { k: 'prop', l: 'Seller property', h: x => `<a href="#/property/${x.p.id}">${esc(nc(val(x.p, 'address') || x.p.pin))}</a> ${bigTag(x.d)}<div class="xs muted">${esc(nc(val(x.p, 'city') || ''))} · ${sfAc(x.d)}</div>`, v: x => val(x.p, 'address') },
     { k: 'owner', l: 'Owner to call', h: x => `<a href="#/owner/${x.p.ownerId}">${esc(oName(x.p.ownerId))}</a><div>${stageTag(S.owners.get(x.p.ownerId)?.stage)}</div>`, v: x => oName(x.p.ownerId) },
-    { k: 'score', l: 'Match', h: x => scorePill(x.score), v: x => x.score }, { k: 'om', l: 'Score', h: x => scorePill(x.om), v: x => x.om },
+    { k: 'score', l: 'Fit', h: x => scorePill(x.score), v: x => x.score }, { k: 'om', l: 'Chance to sell', h: x => scorePill(x.om), v: x => x.om },
     { k: 'val', l: 'Est. value', h: x => dealCell(x.d), v: x => x.d.value }, { k: 'comm', l: 'Est. comm.', h: x => commCell(x.d), v: x => x.d.commission },
     { k: 'why', l: 'Why', h: x => `<div class="xs">${esc(x.reasons.slice(0, 3).join(' · '))}</div>` },
     { k: 'go', l: '', h: x => `<a class="btn sm primary" href="#/prospect/${x.p.ownerId}">Call ▸</a>` },
@@ -184,7 +184,7 @@ const PF = { county: '', q: '', type: '', minSf: '', minAc: '', minScore: '', bu
 // all available list columns; the column chooser stores the visible set in settings
 const PCOLS = (sc, mm) => [
   { k: 'pr', l: 'Priority', h: p => `<b class="rank">${priorityOf(p)}</b>`, v: p => priorityOf(p) },
-  { k: 'om', l: 'Off-mkt', h: p => scorePill(sc.get(p.id).score), v: p => sc.get(p.id).score, def: 1 },
+  { k: 'om', l: 'Chance to sell', h: p => scorePill(sc.get(p.id).score), v: p => sc.get(p.id).score, def: 1 },
   { k: 'address', l: 'Address', h: p => `${favBtn(p.id)} <a href="#/property/${p.id}">${esc(nc(val(p, 'address') || p.pin))}</a>${lstatBadge(p)} ${bigTag(deal(p))}${mm.has(p.id) ? ' <span class="tag match">BUYER</span>' : ''}${S.chg.has(p.id) ? ' <span class="kt k-fresh">fresh</span>' : ''}<div class="sub">${esc(val(p, 'city') || val(p, 'municipality') || '')}${val(p, 'county') ? ' · ' + esc(val(p, 'county')) : ''}</div>`, v: p => val(p, 'address') || '', def: 1, fixed: 1 },
   { k: 'city', l: 'City', h: p => esc(val(p, 'city') || val(p, 'municipality') || ''), v: p => val(p, 'city') || '' },
   { k: 'co', l: 'County', h: p => esc(val(p, 'county')), v: p => val(p, 'county') },
@@ -214,7 +214,7 @@ export async function properties(el) {
   el.innerHTML = `<div class="page wide ${view === 'map' ? 'mapmode' : ''}"><div class="ph"><div><h1>Properties</h1><div class="muted" id="pcount"></div></div>
     <div class="ph-act"><button class="btn ${PF.favs ? 'primary' : ''}" data-chip="favs" aria-pressed="${PF.favs}">★ Favorites${favIds().length ? ' · ' + favIds().length : ''}</button><a class="btn" href="#/near">◎ Near me</a>${view !== 'map' ? '<button class="btn ghost colsb2" id="colsb">Columns</button>' : ''}<div class="seg" role="group" aria-label="View">${[['map', 'Map'], ['list', 'List'], ['split', 'Split']].map(([k, l]) => `<button class="${view === k ? 'on' : ''}" data-view="${k}">${l}</button>`).join('')}</div></div></div>
     <div class="pbar2"><input id="fq" placeholder="Search address, city, owner or PIN" value="${esc(PF.q)}">
-      <details class="moref pfilt" ${OPENF ? 'open' : ''}><summary class="btn">Filters${nAct ? ` · ${nAct}` : ''}</summary>
+      <details class="moref pfilt" ${OPENF ? 'open' : ''}><summary class="btn">More filters${nAct ? ` · ${nAct}` : ''}</summary>
         <div class="pf-panel"><div class="pf-row">${bigToggle()}</div>
           <div class="pf-lbl">County</div><div class="chips fchips">${chip('county:', !PF.county, 'All')}${Object.keys(MARKET.counties).map(c => chip('county:' + c, PF.county === c, c)).join('')}</div>
           <div class="pf-lbl">Show</div><div class="chips fchips">${chip('type:bldg', PF.type === 'bldg', 'Buildings')}${chip('type:land', PF.type === 'land', 'Land')}${chip('score', PF.minScore === '70', 'Score 70+')}${chip('buyer', PF.buyer, 'Buyer match')}${chip('fresh', PF.fresh, 'Fresh change')}${chip('noContact', PF.noContact, 'No verified contact')}${chip('dc', PF.dc, 'Data center site')}${chip('ios', PF.ios, 'Outdoor storage land')}</div>
@@ -369,20 +369,19 @@ export async function property(el, id) {
   el.innerHTML = `<div class="page wide prop2 prop5">
     <div class="crumb"><a href="#/properties">Properties</a> / ${esc(val(p, 'county') || '')}</div>
     <div class="phead5"><div class="ph5-l"><h1>${esc(nc(val(p, 'address') || p.pin || 'Property'))} ${favBtn(p.id, 'lg')}</h1><div class="ph5-sub">${sub}</div>
-        <div class="ph-act"><button class="btn primary" data-call="${p.id}">Call owner</button><details class="actmore"><summary class="btn">More</summary><div class="actmenu"><select id="prio">${['', 'A', 'B', 'C'].map(x => `<option value="${x}" ${x === (p.priority || '') ? 'selected' : ''}>${x ? 'Priority ' + x : 'No priority'}</option>`).join('')}</select><button class="btn ghost" id="onep">One-pager (print / PDF)</button><button class="btn ghost" id="edit">Edit fields</button><button class="btn ghost" id="lstat">Listing status</button><button class="btn ghost" id="pfly">Paste flyer</button><button class="btn ghost" id="cmpb">${cmpIds().includes(p.id) ? 'Remove from compare' : 'Add to compare'}</button><button class="btn ghost" id="lstb">Save to list…</button><a class="btn ghost" href="#/compare">Open compare (${cmpIds().length})</a>${[['Street View', lk('Street View')], ['Google Maps', lk('Google Maps')], ['Aerial view', p.lat ? `https://www.google.com/maps/@${p.lat},${p.lon},300m/data=!3m1!1e3` : null]].filter(x => x[1]).map(([l, u]) => `<a class="btn ghost" target="_blank" rel="noopener" href="${esc(u)}">${l} ↗</a>`).join('')}</div></details></div></div>
+        <div class="bigacts"><button class="bact primary" data-call="${p.id}"><span aria-hidden="true">✆</span>Call</button><button class="bact" data-fav="${p.id}" data-favlabel="1" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? '★ Saved' : '☆ Save'}</button>${p.lat ? `<a class="bact" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}"><span aria-hidden="true">➤</span>Directions</a>` : ''}</div>
+        <div class="ph-act"><button class="btn ghost" id="bovq">BOV one-pager</button><details class="actmore"><summary class="btn">More</summary><div class="actmenu"><select id="prio">${['', 'A', 'B', 'C'].map(x => `<option value="${x}" ${x === (p.priority || '') ? 'selected' : ''}>${x ? 'Priority ' + x : 'No priority'}</option>`).join('')}</select><button class="btn ghost" id="onep">BOV one-pager (print / PDF)</button><button class="btn ghost" id="edit">Edit fields</button><button class="btn ghost" id="lstat">Listing status</button><button class="btn ghost" id="pfly">Paste flyer</button><button class="btn ghost" id="cmpb">${cmpIds().includes(p.id) ? 'Remove from compare' : 'Add to compare'}</button><button class="btn ghost" id="lstb">Save to list…</button><a class="btn ghost" href="#/compare">Open compare (${cmpIds().length})</a>${[['Street View', lk('Street View')], ['Google Maps', lk('Google Maps')], ['Aerial view', p.lat ? `https://www.google.com/maps/@${p.lat},${p.lon},300m/data=!3m1!1e3` : null]].filter(x => x[1]).map(([l, u]) => `<a class="btn ghost" target="_blank" rel="noopener" href="${esc(u)}">${l} ↗</a>`).join('')}</div></details></div></div>
       <div class="pmap ph5-map"><div id="minimap"></div></div></div>
     <div class="tiles4"><div><span>Building SF</span><b>${sizeTxt}</b></div><div><span>Est. value</span><b>${kmoney(d.value) || '–'}</b></div><div><span>Owner</span><b>${o ? `<a href="#/owner/${o.id}">${esc(nc(o.name))}</a>` : esc(nc(val(p, 'taxpayer') || '–'))}</b></div>
-      <div class="scoreline"><span>Score</span><b>${scorePill(sc.score)}${scoreHelpBtn()}</b><small>${esc(why1 || 'Few public-record signals')}</small></div></div>
-    <div class="ptabs" role="tablist">${PT.map(([k, l, secs]) => `<button role="tab" class="${k === ptab ? 'on' : ''}" data-ptab="${k}" data-secs="${secs.join(' ')}">${l}</button>`).join('')}</div>
-    <div class="psecs">${SECS.map(([k, l, hint, body]) => { const t = tabOf(k), solo = PT.find(x => x[0] === t)[2].length === 1; return `<details class="psec ${solo ? 'solo' : ''}" data-sec="${k}" data-in="${t}" open ${t === ptab ? '' : 'hidden'}><summary data-tab="${k}"><span class="ps-t">${l}</span><span class="ps-h">${hint}</span></summary><div class="psec-b">${body}</div></details>`; }).join('')}</div>
+      <div class="scoreline"><span>Chance to sell</span><b>${scorePill(sc.score)}${scoreHelpBtn()}</b><small>${esc(why1 || 'Few public-record signals')}</small></div></div>
+    <div class="psecs acc">${SECS.map(([k, l, hint, body]) => `<details class="psec" data-sec="${k}" ${k === 'numbers' ? 'open' : ''}><summary data-tab="${k}"><span class="ps-t">${l}</span><span class="ps-h">${hint}</span></summary><div class="psec-b">${body}</div></details>`).join('')}</div>
     <div class="disc xs">${DISCLAIMER}</div></div>`;
   const showTab = t => { ptab = t; localStorage.setItem('omi_ptab', t); $$('.ptabs [data-ptab]', el).forEach(b => b.classList.toggle('on', b.dataset.ptab === t)); $$('details.psec', el).forEach(dd => { dd.hidden = dd.dataset.in !== t; dd.open = true; }); if (t === 'nearby') { const ip = $('#intelp'); if (ip && !ip.dataset.f) { ip.dataset.f = 1; intelPane(ip, p); } } };
   $$('.ptabs [data-ptab]', el).forEach(b => b.onclick = () => showTab(b.dataset.ptab));
-  // inside a tab, sections stay open (their titles are just headings)
-  $$('details.psec > summary', el).forEach(sm => sm.addEventListener('click', e => e.preventDefault()));
-  if (ptab === 'nearby') showTab('nearby');
+  { const ins = $('details.psec[data-sec="intel"]', el); if (ins) ins.addEventListener('toggle', () => { const ip = $('#intelp'); if (ins.open && ip && !ip.dataset.f) { ip.dataset.f = 1; intelPane(ip, p); } }); }
   if (window.L && p.lat) { const m = L.map('minimap', { zoomControl: false, attributionControl: false, dragging: !matchMedia('(pointer: coarse)').matches, scrollWheelZoom: false }).setView([p.lat, p.lon], 16); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m); L.circleMarker([p.lat, p.lon], { radius: 8, color: '#fff', weight: 2, fillColor: '#e5484d', fillOpacity: 1 }).addTo(m); }
   $('#onep').onclick = () => import('./sheets.js').then(M => M.printOnePager(p));
+  $('#bovq').onclick = () => import('./sheets.js').then(M => M.printOnePager(p));
   $('#cmpb').onclick = () => { const on = cmpToggle(p.id); $('#cmpb').textContent = on ? 'Remove from compare' : 'Add to compare'; };
   $('#lstb').onclick = () => addToListModal(p.id);
   $('#prio').onchange = async e => { p.priority = e.target.value; await save('properties', p); toast('Saved'); };
@@ -418,7 +417,7 @@ export async function owners(el) {
   const big = bigOn(), nf = [OF.stage, OF.minParcels, OF.buyers].filter(Boolean).length + (big ? 1 : 0);
   el.innerHTML = `<div class="page"><div class="ph"><div><h1>Owners</h1><div class="muted" title="One owner can hold many LLCs and parcels. Groups built from public records are labeled Inferred until you confirm them.">Owner groups from public records, biggest first</div></div><div class="ph-act"><button class="btn ghost colsb2" id="ocols">Columns</button><button class="btn" id="addo">+ Owner</button></div></div>
     <div class="pbar2 filters"><input id="oq" placeholder="Search owner, LLC or contact" value="${esc(OF.q)}">
-      <details class="moref pfilt"><summary class="btn">Filters${nf ? ` · ${nf}` : ''}</summary><div class="pf-panel"><div class="pf-row">${bigToggle()}</div>
+      <details class="moref pfilt"><summary class="btn">More filters${nf ? ` · ${nf}` : ''}</summary><div class="pf-panel"><div class="pf-row">${bigToggle()}</div>
         <div class="pf-lbl">Stage</div><select id="ost"><option value="">Any stage</option>${STAGES.map(s => `<option ${OF.stage === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
         <div class="pf-lbl">Minimum parcels</div><input id="omp" type="number" placeholder="Min parcels" value="${OF.minParcels}">
         <label class="toggle"><input type="checkbox" id="obu" ${OF.buyers ? 'checked' : ''}> Possible buyers (2+ parcels)</label>

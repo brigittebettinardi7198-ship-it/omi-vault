@@ -23,6 +23,7 @@ const NAV = [
   ['crm', 'Follow-ups', 'M13 3a9 9 0 00-9 9H1l4 4 4-4H6a7 7 0 117 7 7 7 0 01-4.9-2l-1.4 1.4A9 9 0 1013 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z'],
   ['comps', 'Comps & Listings', 'M3 17h4V9H3zm7 0h4V5h-4zm7 0h4v-6h-4zM3 21h18v-2H3z'],
   ['brief', 'Market brief', 'M4 4h16v2H4zm0 4h10v2H4zm0 4h16v2H4zm0 4h10v2H4z'],
+  ['favs', 'Saved properties (★)', 'M12 17.3l-6.18 3.7 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.73 1.64 7.03z'],
   ['lists', 'Saved lists', 'M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z'],
   ['templates', 'Templates', 'M14 2H6a2 2 0 00-2 2v16c0 1.1.9 2 2 2h12a2 2 0 002-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z'],
   ['tools', 'Tools & Data', 'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z'],
@@ -30,12 +31,12 @@ const NAV = [
 const MORE_D = 'M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z';
 const ico = k => NAV.find(x => x[0] === k)[2];
 // Five primary destinations; everything else lives under More (nothing removed)
-const PRIMARY = [['properties', 'Properties', ico('properties')], ['offmarket', 'Off-Market', ico('offmarket')], ['prospect', 'Prospect', ico('prospect')], ['owners', 'People', ico('owners')], ['favs', 'Favorites', 'M12 17.3l-6.18 3.7 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.73 1.64 7.03z'], ['more', 'More', MORE_D]];
-const SECTION = { property: 'properties', owner: 'owners', owners: 'owners', requirements: 'owners', requirement: 'owners', companies: 'owners', company: 'owners', command: 'offmarket', offmarket: 'offmarket', prospect: 'prospect', properties: 'properties', near: 'properties', favs: 'favs' };
-const PEOPLE = [['owners', 'Owners'], ['requirements', 'Buyers'], ['companies', 'Tenants']];
+const PRIMARY = [['today', 'Today', 'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V9h14zM7 11h5v5H7z'], ['properties', 'Search', ico('properties')], ['offmarket', 'Off-Market', ico('offmarket')], ['requirements', 'Buyers', ico('owners')], ['more', 'More', MORE_D]];
+const SECTION = { today: 'today', property: 'properties', owner: 'requirements', owners: 'requirements', requirements: 'requirements', requirement: 'requirements', companies: 'requirements', company: 'requirements', command: 'offmarket', offmarket: 'offmarket', prospect: 'offmarket', ask: 'properties', properties: 'properties', near: 'properties', favs: 'favs' };
+const PEOPLE = [['requirements', 'Buyers'], ['owners', 'Owners'], ['companies', 'Tenants']];
 function shell() {
   document.body.innerHTML = `
-  <header class="topnav"><a class="tn-logo" href="#/properties"><img src="icons/icon-192.png" alt=""><span><b>Chicagoland</b> Industrial</span></a>
+  <header class="topnav"><a class="tn-logo" href="#/today"><img src="icons/icon-192.png" alt=""><span><b>Chicagoland</b> Industrial</span></a>
     <nav class="tn-tabs">${PRIMARY.map(([k, l]) => `<a href="#/${k}" data-r="${k}">${l}</a>`).join('')}</nav>
     <div class="search"><input id="gsearch" type="search" placeholder="Search or ask a question" autocomplete="off"><div id="gresults" class="gresults hidden"></div></div><button class="btn sm hidden" id="install">Install app</button></header>
   <div id="bkbanner"></div><main id="view"></main>
@@ -63,12 +64,12 @@ function bindSearch() {
   }
 }
 async function route() {
-  const [r, id] = (location.hash.replace(/^#\/?/, '') || 'properties').split('/');
-  const sec = SECTION[r] || (r ? 'more' : 'properties'); $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === sec));
+  const [r, id] = (location.hash.replace(/^#\/?/, '') || 'today').split('/');
+  const sec = SECTION[r] || (r ? 'more' : 'today'); $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === sec));
   X.cmpTray();
   const el = $('#view'); el.scrollTop = 0; window.scrollTo(0, 0); backupBanner();
-  const fn = { command: V.command, offmarket: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
-  try { await fn(el, id && decodeURIComponent(id)); if (['owners', 'requirements', 'companies'].includes(r) && !id) { const pg = $('.page', el); if (pg) pg.insertAdjacentHTML('afterbegin', `<div class="seg peopleseg">${PEOPLE.map(([k, l]) => `<a class="${k === r ? 'on' : ''}" href="#/${k}">${l}</a>`).join('')}</div>`); } } catch (e) { console.error(e); el.innerHTML = `<div class="page"><h2>Something went wrong</h2><pre>${esc(e.stack || e)}</pre></div>`; }
+  const fn = { today: (el) => import('./plan.js').then(M => M.planView(el)), command: V.command, offmarket: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
+  try { await fn(el, id && decodeURIComponent(id)); polish(el, r, id); tabBadge(); if (['owners', 'requirements', 'companies'].includes(r) && !id) { const pg = $('.page', el); if (pg) pg.insertAdjacentHTML('afterbegin', `<div class="seg peopleseg">${PEOPLE.map(([k, l]) => `<a class="${k === r ? 'on' : ''}" href="#/${k}">${l}</a>`).join('')}</div>`); } } catch (e) { console.error(e); el.innerHTML = `<div class="page"><h2>Something went wrong</h2><pre>${esc(e.stack || e)}</pre></div>`; }
 }
 function backupBanner() {
   const b = $('#bkbanner'); if (!b) return;
@@ -82,7 +83,7 @@ function backupBanner() {
 function dataStamp() { const d = $('#dstamp'); if (d && S.meta) d.innerHTML = `Public data last updated <b>${esc(S.meta.generated)}</b> CT`; }
 async function boot() {
   document.documentElement.dataset.theme = localStorage.getItem('omi_theme5') || 'light';
-  shell(); bindFavs(); bindCall(); bindLstat();
+  shell(); bindFavs(); bindCall(); bindLstat(); setTimeout(() => intro(), 0);
   $('#view').innerHTML = '<div class="boot"><div class="spinner"></div><div id="bootmsg">Opening local database…</div></div>';
   await loadAll();
   const th = setting('theme5', null); if (th) { document.documentElement.dataset.theme = th; }
@@ -100,3 +101,45 @@ let deferred; window.addEventListener('beforeinstallprompt', e => { e.preventDef
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 window.__omi = { S }; window.__omiTheme = t => { document.documentElement.dataset.theme = t; setSetting('theme5', t); }; // for diagnostics/tests
 boot();
+
+// ---------- native-feel helpers: one-line explainer per screen, Back on detail screens, slide-in, first-launch intro ----------
+var EXPLAIN = {
+  properties: 'Find any industrial building or piece of land in Chicagoland. Tap one to see the owner, sales and value.',
+  offmarket: 'Owners most likely to sell before a property is listed, who to call next, and early warning signs.',
+  command: 'Owners most likely to sell before a property is listed, who to call next, and early warning signs.',
+  prospect: 'Your call list, one owner at a time: why to call, the phone number and their properties.',
+  requirements: 'Who is buying: active buyers from public sale records (graded A, B, C) and your own buyer clients.',
+  owners: 'Everyone who owns industrial property here, grouped by company and mailing address.',
+  companies: 'Businesses that occupy these buildings (tenants), from public records and your notes.',
+  favs: 'Properties you saved with the star. Kept on this device.',
+  more: 'Everything else: maps, lists, tools, settings and backup.',
+  ask: 'Type what you need in plain words, like “30,000 sq ft warehouse near I-55”.',
+  near: 'Properties closest to where you are right now.',
+};
+var DETAIL = ['property', 'owner', 'company', 'requirement'];
+function polish(el, r, id) {
+  const pg = el.querySelector('.page'); if (!pg) return;
+  const ex = EXPLAIN[r];
+  if (ex && !id && !pg.querySelector('.explain')) { const h = pg.querySelector('h1'); const host = h ? (h.closest('.ph > div, .hello') || h) : null; if (host) host.insertAdjacentHTML(host === h ? 'afterend' : 'beforeend', `<p class="explain">${ex}</p>`); }
+  if (DETAIL.includes(r) && !pg.querySelector('.backbtn')) {
+    pg.insertAdjacentHTML('afterbegin', '<button class="backbtn" type="button" aria-label="Back">‹ Back</button>');
+    pg.querySelector('.backbtn').onclick = () => { if (history.length > 1) history.back(); else location.hash = '#/properties'; };
+    el.classList.remove('slidein'); void el.offsetWidth; el.classList.add('slidein');
+  } else el.classList.remove('slidein');
+}
+var INTRO = [
+  ['Search every industrial property', 'Look up any building or piece of land in the 8 Chicagoland counties: owner, size, sales and estimated value, all from free public records.'],
+  ['Find owners likely to sell', 'The Off-Market tab ranks owners by their chance to sell and tells you who to call next and why.'],
+  ['See who is buying', 'Buyers shows who has been buying industrial property, graded A, B, C. Star properties to keep them in Saved. Everything stays on this device.'],
+];
+export function intro(force) {
+  if (!force && localStorage.getItem('omi_intro_done')) return;
+  let i = 0; const ov = document.createElement('div'); ov.className = 'intro'; document.body.appendChild(ov);
+  const done = () => { localStorage.setItem('omi_intro_done', '1'); ov.remove(); };
+  const draw = () => { const [t, d] = INTRO[i]; ov.innerHTML = `<div class="intro-c" role="dialog" aria-modal="true" aria-label="Welcome"><div class="intro-dots">${INTRO.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div><h2>${t}</h2><p>${d}</p><div class="intro-b"><button class="btn ghost" data-skip>Skip</button><button class="btn primary" data-next>${i < INTRO.length - 1 ? 'Next' : 'Get started'}</button></div></div>`;
+    ov.querySelector('[data-skip]').onclick = done; ov.querySelector('[data-next]').onclick = () => { if (i < INTRO.length - 1) { i++; draw(); } else done(); }; };
+  draw();
+}
+
+// red badge on the Today tab = follow-ups due today or overdue
+function tabBadge() { import('./plan.js').then(M => { const n = M.dueCount(); $$('[data-r="today"]').forEach(a => { let b = a.querySelector('.tbadge'); if (!n) { if (b) b.remove(); return; } if (!b) { b = document.createElement('span'); b.className = 'tbadge'; a.appendChild(b); } b.textContent = n > 99 ? '99+' : n; }); }); }

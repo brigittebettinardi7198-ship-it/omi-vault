@@ -26,7 +26,7 @@ export async function requirements(el, id) {
   { const X = await import('./extras.js'); const xb = X.x1031Buyers(); const host = document.createElement('details'); host.className = 'sect'; host.dataset.sect = 'x1031';
     host.innerHTML = `<summary><span class="st-t"><h2>Possible 1031 replacement buyers</h2><span class="cnt">${xb.length}</span></span><span class="st-d">Recent industrial sellers who may need to buy</span></summary><div class="sect-b">${X.x1031List(xb.slice(0, 40))}</div>`;
     (el.querySelector('.page') || el).appendChild(host); }
-  { const B = await import('./buyers.js'); const bp = B.buyerProfiles().filter(b => b.n >= 2); const host = document.createElement('details'); host.className = 'sect'; host.dataset.sect = 'bprof';
+  { const B = await import('./buyers.js'); const bp = B.buyerProfiles().filter(b => b.n >= 2); const host = document.createElement('details'); host.className = 'sect'; host.dataset.sect = 'bprof'; host.open = true;
     host.innerHTML = `<summary><span class="st-t"><h2>Active industrial buyers (public sales)</h2><span class="cnt">${bp.length}</span></span><span class="st-d">Repeat buyers in the last ${B.BUYER_YEARS} years: deals, $, size, $/SF, areas</span></summary><div class="sect-b"><div class="xs muted">Grade from recorded purchases only (IL PTAX-203 / county sales). A: 3+ buys in 3 yrs, $10M+, latest within 18 months. B: 2+ buys and $2M+ in 3 yrs, or a buy in the last year. C: the rest. 1031 = also sold within 180 days before a purchase (inferred). Tap a header to sort.</div><div class="bpt"></div></div>`;
     (el.querySelector('.page') || el).appendChild(host);
     const GO = { A: 3, B: 2, C: 1 };
@@ -39,7 +39,14 @@ export async function requirements(el, id) {
       { k: 'co', l: 'Counties', h: x => esc(x.b.counties.slice(0, 3).join(', ')), v: x => x.b.counties[0] || '' },
       { k: 'ld', l: 'Most recent', h: x => `<a href="#/property/${x.b.latest.props[0].id}">${esc(x.b.latest.sd)}</a>`, v: x => x.b.latest.sd },
       { k: 'x', l: '1031', h: x => x.q.x1031 ? 'Possible' : '', v: x => x.q.x1031 ? 1 : 0 },
-    ], { sort: 'g', page: 50, ascKeys: ['n', 'co'] }); }
+      { k: 'add', l: '', h: x => S.requirements.has('pb_' + x.b.key.replace(/\W+/g, '_')) ? `<a class="btn sm" href="#/requirement/pb_${x.b.key.replace(/\W+/g, '_')}">Matches ›</a>` : `<button class="btn sm" data-seed="${esc(x.b.key)}">Track buyer</button>` },
+    ], { sort: 'g', page: 50, ascKeys: ['n', 'co'] });
+    const seed = async b => { const id = 'pb_' + b.key.replace(/\W+/g, '_'); if (S.requirements.has(id)) return id; const lo = b.sfLo || b.sfMin, hi = b.sfHi || b.sfMax, q = B.qualify(b);
+      await save('requirements', { id, name: b.name, clientName: b.name, dealType: lo ? 'Buy (owner-user)' : 'Land', status: 'Active', sfMin: lo ? Math.round(lo * .6 / 1000) * 1000 : '', sfMax: hi ? Math.round(hi * 1.5 / 1000) * 1000 : '', budgetMax: b.pMax ? Math.round(b.pMax * 1.5) : '', counties: b.counties.slice(0, 3), munis: '', created: Date.now(), seeded: 'public-sales',
+        notes: `Tracked from public purchase records (IL PTAX-203 / county sales): ${b.n} purchases, ${kmoney(b.total) || '$ not recorded'}, ${B.sizeRange(b)}, grade ${q.grade}. Ranges widened from what they bought; edit to taste.` }); return id; };
+    host.addEventListener('click', async e => { const t = e.target.closest('[data-seed]'); if (!t) return; const b = bp.find(x => x.key === t.dataset.seed); const id = await seed(b); toast('Now tracking ' + b.name + ': see matching properties and owners'); location.hash = '#/requirement/' + id; });
+    const sb = document.createElement('div'); sb.className = 'btnrow'; sb.innerHTML = '<button class="btn" id="seedab">Track all grade A and B buyers</button>'; host.querySelector('.sect-b').prepend(sb);
+    sb.querySelector('#seedab').onclick = async () => { let n = 0; for (const b of bp) { const g = B.qualify(b).grade; if (g === 'C' || S.requirements.has('pb_' + b.key.replace(/\W+/g, '_'))) continue; await seed(b); n++; } toast(n + ' buyers now tracked as requirements'); location.reload(); }; }
   $('#exp').onclick = () => download(`requirements-${today()}.csv`, toCSV(rows.map(({ id, ...r }) => ({ id, ...r, counties: (r.counties || []).join('|') }))));
 }
 export async function requirement(el, id) {
@@ -62,7 +69,7 @@ export async function requirement(el, id) {
     <section class="card"><div class="ch"><h2>${buy ? 'Sellers to call for this buyer' : 'Owners to call for this requirement'}</h2><div><button class="btn sm" id="addfu">Add top 10 owners to today's follow-ups</button> <button class="btn sm ghost" id="expc">Export call list CSV</button></div></div>
       <div class="muted xs">Ranked by pair score: match quality × owner's off-market likelihood, weighted toward deal size. ${DISCLAIMER}</div><div id="mt"></div></section></div>`;
   table($('#mt'), res, [
-    { k: 'pair', l: 'Pair', h: m => scorePill(m.pair), v: m => m.pair }, { k: 'score', l: 'Match', h: m => scorePill(m.score), v: m => m.score }, { k: 'om', l: 'Score', h: m => scorePill(m.om), v: m => m.om },
+    { k: 'pair', l: 'Pair', h: m => scorePill(m.pair), v: m => m.pair }, { k: 'score', l: 'Fit', h: m => scorePill(m.score), v: m => m.score }, { k: 'om', l: 'Score', h: m => scorePill(m.om), v: m => m.om },
     { k: 'a', l: 'Property', h: m => `<a href="#/property/${m.p.id}">${esc(val(m.p, 'address') || m.p.pin)}</a> ${bigTag(m.d)}<div class="xs muted">${esc(val(m.p, 'city') || '')}, ${esc(val(m.p, 'county'))}</div>`, v: m => val(m.p, 'address') || '' },
     { k: 'sf', l: 'Size', h: m => sfAc(m.d), v: m => m.d.sf }, { k: 'v', l: 'Est. value', h: m => dealCell(m.d), v: m => m.d.value }, { k: 'c', l: 'Est. comm.', h: m => commCell(m.d), v: m => m.d.commission },
     { k: 'o', l: 'Owner to call', h: m => m.p.ownerId ? `<a href="#/owner/${m.p.ownerId}">${esc(oName(m.p.ownerId))}</a> ${stageTag(S.owners.get(m.p.ownerId)?.stage)}` : esc(val(m.p, 'taxpayer') || '') },

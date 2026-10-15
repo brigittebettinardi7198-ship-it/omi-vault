@@ -174,7 +174,7 @@ export function matchOne(r, p) {
     else { s += 2; R.push('Value unknown'); }
   }
   if (r.dealType === 'Investment' && /leased|Multi-tenant/i.test(val(p, 'occupancy') || '')) { s += 5; R.push('Leased (income)'); }
-  const om = scoreOf(p).score; s += Math.round(om / 5); if (om >= 50) R.push(`Off-market score ${om}`);
+  const om = scoreOf(p).score; s += Math.round(om / 5); if (om >= 50) R.push(`Chance to sell ${om}`);
   return { score: Math.min(100, s), reasons: R };
 }
 export function matches(r, minScore = 0) {
@@ -206,7 +206,7 @@ export function callList(limit = 50, bigOnly = false) {
     if (fu && fu.due <= now) { const late = daysBetween(fu.due, now); s += late > 0 ? 35 + Math.min(late, 10) : 30; R.push({ text: late > 0 ? `Follow-up overdue ${late}d: ${fu.note || ''}` : `Follow-up due today: ${fu.note || ''}`, kind: 'crm' }); }
     else { if (closed) continue; const la = lastAct.get(o.id); if (la && (Date.now() - la) / 864e5 < exclDays) continue; if (fu) continue; }
     let best = null; for (const p of props) { const x = sc.get(p.id); if (x && (!best || x.score > best.x.score)) best = { p, x }; }
-    if (best) { s += best.x.score * .35; if (best.x.score >= 50) R.push({ text: `Off-market score ${best.x.score}: ${best.x.reasons.slice(0, 2).map(r => r.text).join('; ')}`, kind: 'score' }); }
+    if (best) { s += best.x.score * .35; if (best.x.score >= 50) R.push({ text: `Chance to sell ${best.x.score}: ${best.x.reasons.slice(0, 2).map(r => r.text).join('; ')}`, kind: 'score' }); }
     let lease = null; for (const p of props) for (const l of propLeases(p.id)) { const li = leaseInfo(l); if (['Act now', 'Soon'].includes(li.urgency)) lease = { l, li }; }
     if (lease) { s += 15; R.push({ text: `Lease ${lease.li.urgency.toLowerCase()}: expires ${lease.l.expiration}`, kind: lease.l.expType === 'known' ? 'broker' : 'estimated' }); }
     const cos = new Set(); for (const p of props) for (const l of propLeases(p.id)) if (l.companyId) cos.add(l.companyId);

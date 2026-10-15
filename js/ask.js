@@ -131,7 +131,7 @@ const CH = {
   type: ['Type', c => c.type, 'select', OPT.propType], counties: ['County', c => c.counties.join(', '), 'list'], towns: ['Towns', c => (c.areas ? c.areas.join(' + ') + ': ' : '') + c.towns.slice(0, 4).join(', ') + (c.towns.length > 4 ? ` +${c.towns.length - 4}` : ''), 'list'],
   oos: ['Owner', () => 'Out-of-state tax bill', 'bool'], absentee: ['Owner', () => 'Absentee (bill mails elsewhere)', 'bool'], ownerTypes: ['Owner type', c => c.ownerTypes.join(' / '), 'list'], noInst: ['Owner', () => 'Not institutional', 'bool'],
   vacant: ['Vacant', () => 'Yes', 'bool'], warn: ['Signal', () => 'WARN layoff / closing', 'bool'], tdel: ['Signal', () => 'In Cook delinquent-tax file', 'bool'], sba: ['Signal', () => 'SBA 504 loan', 'bool'], slb: ['Signal', () => 'Sale-leaseback', 'bool'],
-  fresh: ['Signal', () => 'Fresh change (120 days)', 'bool'], tif: ['Zone', () => 'TIF', 'bool'], oz: ['Zone', () => 'Opportunity Zone', 'bool'], minScore: ['Off-market score', c => c.minScore + '+', 'num'], big: ['Size', () => 'Big deals only', 'bool'], lstat: ['Listing status', c => (LSF.find(x => x[0] === c.lstat) || [, c.lstat])[1], 'select', ['For sale', 'For lease', 'Both', 'Off-market', 'none']],
+  fresh: ['Signal', () => 'Fresh change (120 days)', 'bool'], tif: ['Zone', () => 'TIF', 'bool'], oz: ['Zone', () => 'Opportunity Zone', 'bool'], minScore: ['Chance to sell', c => c.minScore + '+', 'num'], big: ['Size', () => 'Big deals only', 'bool'], lstat: ['Listing status', c => (LSF.find(x => x[0] === c.lstat) || [, c.lstat])[1], 'select', ['For sale', 'For lease', 'Both', 'Off-market', 'none']],
 };
 const chipsHTML = c => Object.keys(CH).filter(k => c[k] != null && c[k] !== false && !(Array.isArray(c[k]) && !c[k].length)).map(k => `<span class="achip" data-k="${k}"><button type="button" class="ach-e" data-edit="${k}" title="Edit">${esc(CH[k][0])}: <b>${esc(CH[k][1](c))}</b></button>${k === 'intent' ? '' : `<button type="button" class="ach-x" data-del="${k}" aria-label="Remove ${esc(CH[k][0])}">✕</button>`}</span>`).join('');
 // ---------- engine ----------
@@ -261,8 +261,8 @@ function renderResults(box, c, el) {
     { k: 'a', l: 'Property', h: x => `<a href="#/property/${x.p.id}">${esc(nc(val(x.p, 'address') || x.p.pin))}</a>${lstatBadge(x.p)}<div class="xs muted">${esc(nc(val(x.p, 'city') || ''))} · ${esc(x.p.co || '')}</div>`, v: x => val(x.p, 'address') },
     { k: 'sz', l: 'Size', h: x => { const so = sfOf(x.p); return so.sf ? fmt(so.sf) + ' SF' + (so.est ? ' <span class="tag est">est.</span>' : '') : x.d.acres ? x.d.acres.toFixed(1) + ' ac' : '–'; }, v: x => sfOf(x.p).sf || x.d.acres * 43560 },
     { k: 'v', l: 'Est. value', h: x => kmoney(x.d.value) || '–', v: x => x.d.value },
-    { k: 'om', l: 'Off-mkt', h: x => scorePill(x.om), v: x => x.om },
-    ...(sellers ? [] : [{ k: 'ms', l: 'Match', h: x => scorePill(x.ms), v: x => x.ms }]),
+    { k: 'om', l: 'Chance to sell', h: x => scorePill(x.om), v: x => x.om },
+    ...(sellers ? [] : [{ k: 'ms', l: 'Fit', h: x => scorePill(x.ms), v: x => x.ms }]),
     { k: 'o', l: 'Owner', h: x => { const o = x.p.ownerId && S.owners.get(x.p.ownerId); return o ? `<a href="#/owner/${o.id}">${esc(nc(o.name))}</a>` : esc(val(x.p, 'taxpayer') || ''); }, v: x => val(x.p, 'taxpayer') },
     { k: 'w', l: 'Why it matched', h: x => `<span class="xs">${esc([...x.R, ...x.top].slice(0, 4).join(' · '))}</span>` },
   ], { empty: 'Nothing matched. Remove a chip or widen a range.' + ((c.counties || []).some(x => ['Will', 'Kane'].includes(x)) || (c.towns || []).length ? ' Note: Will and Kane public data has no building SF or year built, so building-size searches skip them, and Will parcels only include those sold since 2013. Their off-market scores also run lower because fewer fields are published.' : ''), page: 50 });

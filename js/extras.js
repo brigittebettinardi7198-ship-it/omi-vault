@@ -25,7 +25,7 @@ export function cmpTray() {
   t.textContent = `Compare (${n})`;
 }
 const CMPF = [
-  ['Off-market score', p => scorePill(scoreOf(p).score)], ['Deal priority', p => priorityOf(p)], ['City', p => esc(val(p, 'city') || '')], ['County', p => esc(p.co || '')],
+  ['Chance to sell', p => scorePill(scoreOf(p).score)], ['Deal priority', p => priorityOf(p)], ['City', p => esc(val(p, 'city') || '')], ['County', p => esc(p.co || '')],
   ['Building SF', p => fmt(deal(p).sf) || '–'], ['Land (acres)', p => deal(p).acres ? deal(p).acres.toFixed(2) : '–'], ['Year built', p => esc(val(p, 'yearBuilt') || '–')],
   ['Clear height', p => esc(val(p, 'clearHeight') || '–')], ['Docks', p => esc(val(p, 'docks') || '–')], ['Est. value', p => `${kmoney(deal(p).value) || '–'} <div class="xs muted">${esc(deal(p).kind || '')}</div>`],
   ['Est. commission', p => kmoney(deal(p).commission) || '–'], ['Owner (tax bill)', p => esc(val(p, 'taxpayer') || '–')], ['Mailing state', p => esc(val(p, 'mailState') || '–')],

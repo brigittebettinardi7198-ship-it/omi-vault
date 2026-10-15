@@ -5,7 +5,18 @@ import { S, val, setting, setSetting } from './store.js';
 import { scoreOf, deal } from './scoring.js';
 import { nc, dcOf, powerTxt, iosOf } from './extras.js';
 import { likelyBuyers } from './buyers.js';
+import { nearbySales } from './comps.js';
+import { sfOf } from './scoring.js';
 
+// ---------- BOV block: nearest real recorded sales with $/SF and an ESTIMATED value range ----------
+function bovHTML(p) {
+  const so = sfOf(p), cs = nearbySales(p, 8).filter(c => c.psf > 0).slice(0, 5);
+  if (!cs.length) return '<h2>Broker opinion of value</h2><div>No nearby recorded sales with a usable $/SF, so no value range is shown.</div>';
+  const v = cs.map(c => c.psf).sort((a, b) => a - b), q = f => v[Math.min(v.length - 1, Math.max(0, Math.round(f * (v.length - 1))))];
+  const lo = q(.25), mid = v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2, hi = q(.75);
+  return `<h2>Broker opinion of value <span class="ops">ESTIMATE</span></h2><table class="op-t"><tr><th>Sale</th><th>Date</th><th>Price</th><th>SF</th><th>$/SF</th><th>Miles</th></tr>${cs.map(c => `<tr><td>${esc(nc(c.addr || ''))}${c.city ? ', ' + esc(nc(c.city)) : ''}</td><td>${esc(c.d || '')}</td><td>${money(c.price)}</td><td>${fmt(c.sf)}</td><td>$${Math.round(c.psf)}</td><td>${c.mi.toFixed(1)}</td></tr>`).join('')}</table>
+    <div><b>$${Math.round(lo)}–$${Math.round(hi)}/SF</b> (median $${Math.round(mid)}) from ${cs.length} nearby recorded sale${cs.length > 1 ? 's' : ''}.${so.sf ? ` Applied to ${fmt(so.sf)} SF${so.est ? ' (estimated from roof footprint)' : ''}: <b>${money(Math.round(lo * so.sf / 1e4) * 1e4)} – ${money(Math.round(hi * so.sf / 1e4) * 1e4)}</b> (ESTIMATE, not an appraisal).` : ' No building SF on record, so no total is shown.'}</div>`;
+}
 // ---------- one-pager ----------
 export function onePagerHTML(p) {
   const d = deal(p), sc = scoreOf(p), o = p.ownerId && S.owners.get(p.ownerId), lb = p.office ? [] : likelyBuyers(p, 3);
@@ -21,6 +32,7 @@ export function onePagerHTML(p) {
   ${row('Power', p.subd != null ? powerTxt(p) : '', 'OpenStreetMap')}${row('Flood', p.flood ? 'In a FEMA flood hazard area' : '', 'FEMA NFHL')}
   ${row('Location', p.lat ? `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}` : '')}</table>
   ${sc.reasons && sc.reasons.length ? `<h2>Why it scores</h2><ul>${sc.reasons.filter(r => (r.pts || 0) > 0).slice(0, 5).map(r => `<li>${esc(r.text || r)}</li>`).join('')}</ul>` : ''}
+  ${bovHTML(p)}
   ${lb.length ? `<h2>Active buyers that fit</h2><ul>${lb.map(x => `<li><b>${esc(x.b.name)}</b>: ${esc(x.why)}</li>`).join('')}</ul>` : ''}
   <div class="op-f">Prepared ${today()} from public records (county assessor, IL PTAX-203, FEMA, OpenStreetMap). Values marked ESTIMATE are not appraisals. Verify before use. Not a listing.</div></div>`;
 }
