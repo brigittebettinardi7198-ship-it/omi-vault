@@ -20,7 +20,9 @@ export async function ensureSeed(progress = () => {}) {
   S.meta = meta; await loadChanges();
   if (S.settings && S.settings.seedGenerated === meta.generated && S.props.length) return false;
   progress('Downloading public-record parcels…');
-  const parts = await Promise.all(MARKET.dataFiles.map(f => fetch(`data/${f}.json?v=${encodeURIComponent(meta.generated)}`, { cache: 'no-cache' }).then(r => r.json())));
+  const q = `?v=${encodeURIComponent(meta.generated)}`, get = f => fetch(`data/${f}${q}`, { cache: 'no-cache' }).then(r => r.json());
+  const man = await fetch(`data/parts.json${q}`, { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}));
+  const parts = await Promise.all(MARKET.dataFiles.map(f => man[f] && man[f].length ? Promise.all(man[f].map(get)).then(a => a.flat()) : get(f + '.json')));
   progress('Grouping owners…');
   const recs = parts.flat();
   // inferred owner grouping: same normalized taxpayer name, or same mailing address shared by <= 5 names
