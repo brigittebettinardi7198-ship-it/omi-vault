@@ -264,13 +264,15 @@ const tok = s => String(s || '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z
 let SIX = { v: -1 };
 function searchIndex() {
   if (SIX.v === S.version && SIX.n === S.props.length) return SIX;
-  const props = S.props.map(p => { const a = tok(val(p, 'address') || p.addr), c = tok(cityOf(p)), o = tok(ownerName(p)); return { p, a, c, o, all: [...a, ...c, ...o, ...tok(p.zip)], pin: String(p.pin || '').replace(/\D/g, '') }; });
-  const owners = [...S.owners.values()].map(o => ({ o, t: tok([o.name, ...(o.entities || []), o.contactName].join(' ')) }));
+  const J = a => ' ' + a.join(' ');
+  const props = S.props.map(p => { const a = J(tok(val(p, 'address') || p.addr)), o = J(tok(ownerName(p))); return { p, a, o, all: a + J(tok(cityOf(p))) + o + ' ' + (p.zip || ''), pin: String(p.pin || '').replace(/\D/g, '') }; });
+  const oc = new Map(); for (const p of S.props) if (p.ownerId) oc.set(p.ownerId, (oc.get(p.ownerId) || 0) + 1);
+  const owners = [...S.owners.values()].map(o => ({ o, n: oc.get(o.id) || 0, t: J(tok([o.name, ...(o.entities || []), o.contactName].join(' '))) }));
   const tc = new Map(); for (const p of S.props) { const c = String(cityOf(p) || '').replace(/\b(Vlg|Vil|Vl)\.?$/i, 'Village').replace(/\bHts\b/i, 'Heights').replace(/\bPk\b/i, 'Park'); if (c && !/unincorporated/i.test(c)) tc.set(c, (tc.get(c) || 0) + 1); }
-  const towns = [...tc.entries()].filter(([, k]) => k >= 5).map(([n, k]) => ({ n, k, t: tok(n) }));
+  const towns = [...tc.entries()].filter(([, k]) => k >= 5).map(([n, k]) => ({ n, k, t: J(tok(n)) }));
   SIX = { v: S.version, n: S.props.length, props, owners, towns }; return SIX;
 }
-const hit = (q, toks) => q.every(w => toks.some(t => t.startsWith(w)));
+const hit = (q, str) => q.every(w => str.includes(' ' + w));
 const RKEY = 'omi_recent_search';
 const recentGet = () => { try { return JSON.parse(localStorage.getItem(RKEY) || '[]'); } catch { return []; } };
 const recentAdd = it => { try { const L = recentGet().filter(x => x[1] !== it[1]); L.unshift(it); localStorage.setItem(RKEY, JSON.stringify(L.slice(0, 8))); } catch { } };
@@ -283,23 +285,24 @@ function smartResults(raw) {
   // towns
   const T = I.towns.filter(t => hit(q, t.t)).sort((a, b) => b.k - a.k).slice(0, 2);
   for (const t of T) out.push({ g: 'Go to', label: `Sellers in ${t.n}`, href: `#/ask/${encodeURIComponent('sellers in ' + t.n)}`, sub: `${fmt(t.k)} industrial properties, ranked by chance to sell`, tag: 'Town' });
+  if (q0.length < 2) return out.concat(recentGet().map(x => ({ g: 'Recent', label: x[0], href: x[1], sub: x[2] || '', tag: x[3] || '' })));
   // properties: all words must match (any order, partial words OK)
   const P = [];
   for (const x of I.props) {
     let m = false, r = 0;
     if (digits.length >= 6 && x.pin.includes(digits)) { m = true; r = 300; }
-    else if (hit(q, x.all)) { m = true; const inAddr = hit(q, x.a); r = (inAddr ? 120 : 0) + (x.a.join(' ').startsWith(q.join(' ')) ? 80 : 0) + (hit(q, x.o) ? 40 : 0); }
+    else if (hit(q, x.all)) { m = true; const inAddr = hit(q, x.a); r = (inAddr ? 120 : 0) + (x.a.startsWith(' ' + q.join(' ')) ? 80 : 0) + (hit(q, x.o) ? 40 : 0); }
     if (m) P.push({ x, r: r + scoreOf(x.p).score / 2 });
   }
   P.sort((a, b) => b.r - a.r);
   const seenAddr = new Set();
   for (const { x } of P) { if (out.filter(o => o.g === 'Properties').length >= 10) break; const p = x.p, k = (addrOf(p) + cityOf(p)).toLowerCase(); if (seenAddr.has(k)) continue; seenAddr.add(k); const s = scoreOf(p).score, sf = sfOf(p).sf, st = stackOf(p).length; out.push({ g: 'Properties', label: addrOf(p), href: `#/property/${p.id}`, sub: `${cityOf(p)} · ${nc(ownerName(p))}${sf ? ' · ' + fmt(sf) + ' SF' : ''}`, score: s, stack: st, tag: 'Property' }); }
   // owners
-  const O = I.owners.filter(o => hit(q, o.t)).map(o => ({ o: o.o, n: S.props.filter(p => p.ownerId === o.o.id).length })).sort((a, b) => b.n - a.n).slice(0, 5);
+  const O = []; for (const o of I.owners) if (hit(q, o.t)) O.push(o); O.sort((a, b) => b.n - a.n); O.length = Math.min(O.length, 5);
   for (const { o, n } of O) out.push({ g: 'Owners', label: nc(o.name), href: `#/owner/${o.id}`, sub: `${n} propert${n === 1 ? 'y' : 'ies'}${o.stage ? ' · ' + o.stage : ''}${o.mail?.city ? ' · mail: ' + nc(o.mail.city) + ', ' + o.mail.st : ''}`, tag: 'Owner' });
   // tenants / buyers from the broker's own records
-  for (const c of S.companies.values()) if (hit(q, tok(c.name))) out.push({ g: 'Tenants & buyers', label: c.name, href: `#/company/${c.id}`, sub: c.industry || 'Tenant', tag: 'Tenant' });
-  for (const r of S.requirements.values()) if (hit(q, tok((r.name || '') + ' ' + (r.clientName || '')))) out.push({ g: 'Tenants & buyers', label: r.name, href: `#/requirement/${r.id}`, sub: r.dealType || 'Requirement', tag: 'Buyer' });
+  for (const c of S.companies.values()) if (hit(q, ' ' + tok(c.name).join(' '))) out.push({ g: 'Tenants & buyers', label: c.name, href: `#/company/${c.id}`, sub: c.industry || 'Tenant', tag: 'Tenant' });
+  for (const r of S.requirements.values()) if (hit(q, ' ' + tok((r.name || '') + ' ' + (r.clientName || '')).join(' '))) out.push({ g: 'Tenants & buyers', label: r.name, href: `#/requirement/${r.id}`, sub: r.dealType || 'Requirement', tag: 'Buyer' });
   // always offer plain-English Ask
   out.push({ g: 'Ask', label: `Ask: "${q0}"`, href: `#/ask/${encodeURIComponent(q0)}`, sub: 'Smart search in plain English: size, area, owner type, signals', tag: 'Ask' });
   return out.slice(0, 40);

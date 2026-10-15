@@ -1,5 +1,5 @@
 // Chicagoland Industrial service worker: shell network-first, data network-first (so scheduled refreshes arrive), cache fallback offline. Nothing is sent anywhere.
-const VER = 'omi-pro-202610151730';
+const VER = 'omi-pro-202610151740';
 const SHELL = ['./', './index.html', './css/app.css', './manifest.webmanifest', './vendor/leaflet.js', './vendor/leaflet.css', './vendor/papaparse.min.js', './vendor/xlsx.full.min.js',
   './js/app.js', './js/db.js', './js/util.js', './js/store.js', './js/scoring.js', './js/seed.js', './js/templates.js', './js/ui.js', './js/views.js', './js/views2.js', './js/markets.js', './js/hooks.js', './js/contacts.js', './js/backup.js', './js/comps.js', './js/views3.js', './js/ask.js', './js/adv.js', './js/buyers.js', './js/callpanel.js', './js/extras.js', './js/favs.js', './js/invest.js', './js/lstat.js', './js/near.js', './js/plan.js', './js/pro.js', './js/sheets.js', './js/trueowner.js', './css/pro.css',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
