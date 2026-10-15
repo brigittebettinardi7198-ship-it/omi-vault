@@ -24,6 +24,7 @@ const NAV = [
   ['comps', 'Comps & Listings', 'M3 17h4V9H3zm7 0h4V5h-4zm7 0h4v-6h-4zM3 21h18v-2H3z'],
   ['brief', 'Market brief', 'M4 4h16v2H4zm0 4h10v2H4zm0 4h16v2H4zm0 4h10v2H4z'],
   ['occupants', "Who's inside (tenants)", 'M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13z'],
+  ['stack', 'Stacked opportunities', 'M12 2l10 5-10 5L2 7zm0 13l-8-4-2 1 10 5 10-5-2-1zm0-4l-8-4-2 1 10 5 10-5-2-1z'],
   ['slb', 'Sale-leaseback targets', 'M4 10h16v10H4zM12 3l9 6H3z'],
   ['favs', 'Saved properties (★)', 'M12 17.3l-6.18 3.7 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.73 1.64 7.03z'],
   ['lists', 'Saved lists', 'M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z'],
@@ -34,7 +35,7 @@ const MORE_D = 'M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z';
 const ico = k => NAV.find(x => x[0] === k)[2];
 // Five primary destinations; everything else lives under More (nothing removed)
 const PRIMARY = [['today', 'Today', 'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V9h14zM7 11h5v5H7z'], ['properties', 'Search', ico('properties')], ['offmarket', 'Off-Market', ico('offmarket')], ['requirements', 'Buyers', ico('owners')], ['more', 'More', MORE_D]];
-const SECTION = { today: 'today', property: 'properties', owner: 'requirements', owners: 'requirements', requirements: 'requirements', requirement: 'requirements', companies: 'requirements', occupants: 'requirements', slb: 'offmarket', company: 'requirements', command: 'offmarket', offmarket: 'offmarket', prospect: 'offmarket', ask: 'properties', properties: 'properties', near: 'properties', favs: 'favs' };
+const SECTION = { today: 'today', stack: 'offmarket', property: 'properties', owner: 'requirements', owners: 'requirements', requirements: 'requirements', requirement: 'requirements', companies: 'requirements', occupants: 'requirements', slb: 'offmarket', company: 'requirements', command: 'offmarket', offmarket: 'offmarket', prospect: 'offmarket', ask: 'properties', properties: 'properties', near: 'properties', favs: 'favs' };
 const PEOPLE = [['requirements', 'Buyers'], ['owners', 'Owners'], ['companies', 'Tenants']];
 function shell() {
   document.body.innerHTML = `
@@ -70,8 +71,8 @@ async function route() {
   const sec = SECTION[r] || (r ? 'more' : 'today'); $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === sec));
   X.cmpTray();
   const el = $('#view'); el.scrollTop = 0; window.scrollTo(0, 0); backupBanner();
-  const fn = { occupants: (el) => import('./adv.js').then(M => M.occView(el)), slb: (el) => import('./adv.js').then(M => M.slbView(el)), today: (el) => import('./plan.js').then(M => M.planView(el)), command: V.command, offmarket: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
-  try { await fn(el, id && decodeURIComponent(id)); polish(el, r, id); tabBadge(); if (['owners', 'requirements', 'companies'].includes(r) && !id) { const pg = $('.page', el); if (pg) pg.insertAdjacentHTML('afterbegin', `<div class="seg peopleseg">${PEOPLE.map(([k, l]) => `<a class="${k === r ? 'on' : ''}" href="#/${k}">${l}</a>`).join('')}</div>`); } } catch (e) { console.error(e); el.innerHTML = `<div class="page"><h2>Something went wrong</h2><pre>${esc(e.stack || e)}</pre></div>`; }
+  const fn = { stack: (el) => import('./pro.js').then(M => M.stackView(el)), occupants: (el) => import('./adv.js').then(M => M.occView(el)), slb: (el) => import('./adv.js').then(M => M.slbView(el)), today: (el) => import('./plan.js').then(M => M.planView(el)), command: V.command, offmarket: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
+  try { await fn(el, id && decodeURIComponent(id)); polish(el, r, id); try { (await import('./pro.js')).enhance(el, r, id); } catch (e) { console.error(e); } tabBadge(); if (['owners', 'requirements', 'companies'].includes(r) && !id) { const pg = $('.page', el); if (pg) pg.insertAdjacentHTML('afterbegin', `<div class="seg peopleseg">${PEOPLE.map(([k, l]) => `<a class="${k === r ? 'on' : ''}" href="#/${k}">${l}</a>`).join('')}</div>`); } } catch (e) { console.error(e); el.innerHTML = `<div class="page"><h2>Something went wrong</h2><pre>${esc(e.stack || e)}</pre></div>`; }
 }
 function backupBanner() {
   const b = $('#bkbanner'); if (!b) return;
@@ -117,6 +118,7 @@ var EXPLAIN = {
   companies: 'Businesses that occupy these buildings (tenants), from public records and your notes.',
   favs: 'Properties you saved with the star. Kept on this device.',
   more: 'Everything else: maps, lists, tools, settings and backup.',
+  stack: 'Properties where three or more independent reasons to transact overlap.',
   ask: 'Type what you need in plain words, like “30,000 sq ft warehouse near I-55”.',
   near: 'Properties closest to where you are right now.',
 };
