@@ -592,3 +592,8 @@ details.sect{border:0;box-shadow:var(--shadow);border-radius:var(--r);background
 .lsctl{margin:10px 0 6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.lsctl select{min-width:150px}
 
 .tag.est{font-size:10px;padding:0 4px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:6px;font-weight:600;vertical-align:middle}
+/* investment calculator + buyer grades */
+.invg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}.invg label{display:flex;flex-direction:column;font-size:12px;color:#475569}.invg input{width:100%}
+.invo{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:6px 0 8px}.invo div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px}.invo span{display:block;font-size:11px;color:#64748b}.invo b{font-size:15px}
+.qg{display:inline-block;min-width:18px;text-align:center;font-weight:700;font-size:11px;border-radius:4px;padding:0 4px;color:#fff;background:#94a3b8}.qg-A{background:#15803d}.qg-B{background:#2563eb}
+.qwhy summary{cursor:pointer;color:#475569}.qwhy ul{margin:2px 0 4px 16px}

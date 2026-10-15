@@ -27,8 +27,19 @@ export async function requirements(el, id) {
     host.innerHTML = `<summary><span class="st-t"><h2>Possible 1031 replacement buyers</h2><span class="cnt">${xb.length}</span></span><span class="st-d">Recent industrial sellers who may need to buy</span></summary><div class="sect-b">${X.x1031List(xb.slice(0, 40))}</div>`;
     (el.querySelector('.page') || el).appendChild(host); }
   { const B = await import('./buyers.js'); const bp = B.buyerProfiles().filter(b => b.n >= 2); const host = document.createElement('details'); host.className = 'sect'; host.dataset.sect = 'bprof';
-    host.innerHTML = `<summary><span class="st-t"><h2>Active industrial buyers (public sales)</h2><span class="cnt">${bp.length}</span></span><span class="st-d">Repeat buyers in the last ${B.BUYER_YEARS} years: deals, $, size, $/SF, areas</span></summary><div class="sect-b">${B.buyerProfilesHTML(60)}</div>`;
-    (el.querySelector('.page') || el).appendChild(host); }
+    host.innerHTML = `<summary><span class="st-t"><h2>Active industrial buyers (public sales)</h2><span class="cnt">${bp.length}</span></span><span class="st-d">Repeat buyers in the last ${B.BUYER_YEARS} years: deals, $, size, $/SF, areas</span></summary><div class="sect-b"><div class="xs muted">Grade from recorded purchases only (IL PTAX-203 / county sales). A: 3+ buys in 3 yrs, $10M+, latest within 18 months. B: 2+ buys and $2M+ in 3 yrs, or a buy in the last year. C: the rest. 1031 = also sold within 180 days before a purchase (inferred). Tap a header to sort.</div><div class="bpt"></div></div>`;
+    (el.querySelector('.page') || el).appendChild(host);
+    const GO = { A: 3, B: 2, C: 1 };
+    table(host.querySelector('.bpt'), bp.map(b => ({ b, q: B.qualify(b) })), [
+      { k: 'g', l: 'Grade', h: x => B.gradeTag(x.q.grade), v: x => GO[x.q.grade] * 1e12 + x.q.tot3 },
+      { k: 'n', l: 'Buyer', h: x => `<b>${esc(x.b.name)}</b><details class="qwhy"><summary class="xs">Why qualified</summary><ul class="xs">${x.q.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul></details>`, v: x => x.b.name },
+      { k: 'n3', l: 'Buys 3 yrs', cls: 'num', h: x => x.q.n3, v: x => x.q.n3 },
+      { k: 't3', l: '$ 3 yrs', cls: 'num', h: x => kmoney(x.q.tot3) || '–', v: x => x.q.tot3 },
+      { k: 'sz', l: 'Size bought', h: x => esc(B.sizeRange(x.b)), v: x => x.b.sfHi || x.b.sfMax || 0 },
+      { k: 'co', l: 'Counties', h: x => esc(x.b.counties.slice(0, 3).join(', ')), v: x => x.b.counties[0] || '' },
+      { k: 'ld', l: 'Most recent', h: x => `<a href="#/property/${x.b.latest.props[0].id}">${esc(x.b.latest.sd)}</a>`, v: x => x.b.latest.sd },
+      { k: 'x', l: '1031', h: x => x.q.x1031 ? 'Possible' : '', v: x => x.q.x1031 ? 1 : 0 },
+    ], { sort: 'g', page: 50, ascKeys: ['n', 'co'] }); }
   $('#exp').onclick = () => download(`requirements-${today()}.csv`, toCSV(rows.map(({ id, ...r }) => ({ id, ...r, counties: (r.counties || []).join('|') }))));
 }
 export async function requirement(el, id) {

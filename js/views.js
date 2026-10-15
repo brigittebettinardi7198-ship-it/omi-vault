@@ -2,6 +2,7 @@ import { trueOwnerHTML, bindTrueOwner, trueOwnerQueue, ownerEntities, linkedOwne
 import { favBtn, isFav, favIds } from './favs.js';
 import { lstatBadge, lstatControl, lstatMatch, LSF } from './lstat.js';
 import { likelyBuyersHTML, likelyBuyers } from './buyers.js';
+import { investHTML, bindInvest } from './invest.js';
 import { TYPE4, isType, typeCounts, officeProps, loadOffice, phonesHTML, siteHTML, dcOf, iosOf, jumpHTML, appealHTML, shortWhy, nc, statsHTML, bindStats, statsLine, oppHTML, bindOpp, intelPane, cpermHTML, cvalHTML, networkHTML, cmpIds, cmpToggle, addToListModal, floodLayer } from './extras.js';
 import { $, $$, esc, fmt, money, kmoney, today, addDays, daysBetween, d8, badge, CONF, toast, toCSV, download, uid, scorePill, normName, scoreColor, SCORE_BANDS } from './util.js';
 import { S, save, val, conf, FIELDS, FBY, OPT, STAGES, CLOSED_STAGES, MOTIVATIONS, ownerProps, propLeases, ownerFollowups, activitiesFor, setting, setSetting, idx, addFollowup, addActivity } from './store.js';
@@ -357,10 +358,11 @@ export async function property(el, id) {
     ['likely', 'Likely buyers for this building', (() => { const n = likelyBuyers(p, 5).length; return n ? n + ' active buyer' + (n > 1 ? 's' : '') : ''; })(), likelyBuyersHTML(p)],
     ['intel', 'News & area', '', panes.intel],
     ['research', 'Research & listing check', '', panes.research],
+    ['invest', 'Investment (estimate)', '', investHTML(p)],
     ['activity', 'Activity & notes', '', panes.activity],
   ];
   // CoStar-style header + 4 stat tiles + tabs. Every former section is still here, grouped under a tab (nothing removed).
-  const PT = [['summary', 'Summary', ['numbers', 'building', 'tenants']], ['owner', 'Owner & Contacts', ['owner']], ['history', 'History / Sales', ['history']], ['signals', 'Signals', ['why', 'buyers', 'research']], ['nearby', 'Nearby', ['likely', 'intel']], ['notes', 'Notes', ['activity']]];
+  const PT = [['summary', 'Summary', ['numbers', 'building', 'tenants']], ['invest', 'Investment', ['invest']], ['owner', 'Owner & Contacts', ['owner']], ['history', 'History / Sales', ['history']], ['signals', 'Signals', ['why', 'buyers', 'research']], ['nearby', 'Nearby', ['likely', 'intel']], ['notes', 'Notes', ['activity']]];
   let ptab = localStorage.getItem('omi_ptab') || 'summary'; if (!PT.some(t => t[0] === ptab)) ptab = 'summary';
   const tabOf = k => (PT.find(t => t[2].includes(k)) || PT[0])[0];
   const sub = [nc(val(p, 'city') || ''), val(p, 'submarket') || '', (val(p, 'county') || '') + ' County'].filter(Boolean).map(esc).join(' · ');
@@ -393,6 +395,7 @@ export async function property(el, id) {
   const rer = () => property(el, id), lst = () => compForm('listing', { propertyId: p.id, address: val(p, 'address'), city: val(p, 'city'), status: 'Listed for sale', sf: val(p, 'bldgSf') || '' }, rer);
   $('#lstat').onclick = lst; const l2 = $('#lstat2'); if (l2) l2.onclick = lst;
   $('#pfly').onclick = () => flyerModal(p, rer); const f2 = $('#pfly2'); if (f2) f2.onclick = () => flyerModal(p, rer);
+  bindInvest(el);
   const nl2 = $('#notlisted'); if (nl2) nl2.onclick = async () => { p.ed = p.ed || {}; p.cf = p.cf || {}; p.ed.marketStatus = 'Off-market'; p.cf.marketStatus = 'broker'; p.listingChecked = today(); await save('properties', p); toast('Marked not listed (checked today)'); rer(); };
   const asc = $('#addsc'); if (asc) asc.onclick = () => compForm('sale', {}, rer); const alc = $('#addlc'); if (alc) alc.onclick = () => compForm('lease', {}, rer);
   $$('[data-editf]', el).forEach(b => b.onclick = () => editFields(p, () => property(el, id)));

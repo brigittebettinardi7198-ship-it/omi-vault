@@ -59,10 +59,36 @@ export function likelyBuyers(p, k = 5) {
   }
   return out.sort((a, b) => b.s - a.s).slice(0, k);
 }
-export const likelyBuyersHTML = p => { const L = likelyBuyers(p); return L.length ? `<ul class="why lb">${L.map(x => `<li><b>${esc(x.b.name)}</b> <span class="xs muted">${esc(x.why)}</span></li>`).join('')}</ul><div class="xs muted">Fact: past purchases from IL PTAX-203 / county sales (last ${BUYER_YEARS} years, buyer names grouped when they differ only by punctuation or LLC/Inc). Fit to this building is inferred.</div>` : '<div class="muted">No repeat buyer in the public sales data fits this building\'s size and area.</div>'; };
+export const likelyBuyersHTML = p => { const L = likelyBuyers(p); return L.length ? `<ul class="why lb">${L.map(x => { const q = qualify(x.b); return `<li>${gradeTag(q.grade)} <b>${esc(x.b.name)}</b> <span class="xs">${esc(fitCheck(x.b, p))}</span><details class="qwhy"><summary class="xs">Why qualified</summary><ul class="xs">${q.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul></details></li>`; }).join('')}</ul><div class="xs muted">Fact: past purchases from IL PTAX-203 / county sales (last ${BUYER_YEARS} years, buyer names grouped when they differ only by punctuation or LLC/Inc). Fit to this building is inferred.</div>` : '<div class="muted">No repeat buyer in the public sales data fits this building\'s size and area.</div>'; };
 export function buyerProfilesHTML(limit = 60) {
   const all = buyerProfiles(), rep = all.filter(b => b.n >= 2);
   const row = b => `<tr><td><b>${esc(b.name)}</b>${b.variants.length > 1 ? `<div class="xs muted" title="${esc(b.variants.join(' | '))}">${b.variants.length} name variants</div>` : ''}</td><td class="num">${b.n}${b.np > b.n ? `<div class="xs muted">${b.np} parcels</div>` : ''}</td><td class="num">${kmoney(b.total) || '–'}</td><td>${esc(sizeRange(b))}</td><td class="num">${b.psf ? '$' + Math.round(b.psf) : '–'}</td><td>${esc(b.cities.slice(0, 3).join(', '))}</td><td><a href="#/property/${b.latest.props[0].id}">${esc(nc(val(b.latest.props[0], 'address') || ''))}</a><div class="xs muted">${esc(b.latest.sd)}${b.latest.sp ? ' · ' + kmoney(b.latest.sp) : ''}</div></td></tr>`;
   return `<div class="xs muted">${rep.length} buyers with 2+ industrial purchases in the last ${BUYER_YEARS} years (${all.length} buyers in total), from IL PTAX-203 / county sales. Same buyer + same recording date counts as one purchase (portfolio deeds).</div>
     <div class="tbl-wrap"><table class="grid bprof"><thead><tr><th>Buyer</th><th class="num">Purchases</th><th class="num">Total $</th><th>Typical size</th><th class="num">Median $/SF</th><th>Areas</th><th>Most recent</th></tr></thead><tbody>${rep.slice(0, limit).map(row).join('')}</tbody></table></div>`;
 }
+// ---------- Qualification grade (A/B/C) from recorded purchases only ----------
+// A: 3+ purchases in the last 3 years, $10M+ in that window, latest within 18 months. B: 2+ purchases in 3 years and $2M+, or any purchase in the last 12 months. C: the rest.
+// 1031: the same buyer name also SOLD industrial property in the 180 days before one of its purchases (inferred from public sales; possible exchange).
+let sold = null;
+function sellerDates() {
+  if (sold && sold.v === S.version) return sold.m; const m = new Map();
+  for (const p of S.props) { const s = p.seller || val(p, 'lastSeller'), sd = val(p, 'lastSaleDate'); if (!s || !sd) continue; const k = buyerKey(s); if (!k) continue; (m.get(k) || m.set(k, []).get(k)).push(sd); }
+  sold = { v: S.version, m }; return m;
+}
+export function qualify(b) {
+  if (b._q && b._q.v === S.version) return b._q;
+  const cut3 = String(new Date().getFullYear() - 3) + today().slice(4), t3 = b.tx.filter(t => t.sd >= cut3), n3 = t3.length, tot3 = t3.reduce((a, t) => a + t.sp, 0);
+  const days = daysBetween(b.latest.sd, today()), sd = sellerDates().get(b.key) || [];
+  const x1031 = b.tx.find(t => sd.some(s => { const g = daysBetween(s, t.sd); return g >= 0 && g <= 180; }));
+  const grade = n3 >= 3 && tot3 >= 1e7 && days <= 548 ? 'A' : (n3 >= 2 && tot3 >= 2e6) || days <= 365 ? 'B' : 'C';
+  const why = [`${n3} purchase${n3 === 1 ? '' : 's'} in the last 3 years${n3 ? ` (${kmoney(tot3) || 'price not recorded'})` : ''}`, `${b.n} in ${BUYER_YEARS} years, ${kmoney(b.total) || '$ not recorded'} total`, `Size bought: ${sizeRange(b)}`, `Counties: ${b.counties.slice(0, 3).join(', ')}`, `Most recent: ${b.latest.sd}${b.latest.sp ? ' · ' + kmoney(b.latest.sp) : ''}`];
+  if (x1031) why.push(`Possible 1031: sold industrial property within 180 days before buying on ${x1031.sd} (inferred)`);
+  return (b._q = { v: S.version, grade, n3, tot3, days, x1031: !!x1031, why });
+}
+export function fitCheck(b, p) {
+  const d = deal(p), sf = (+val(p, 'bldgSf') || +p.est_bldg_sf || 0), v = d.value || 0, lo = b.sfLo || b.sfMin, hi = b.sfHi || b.sfMax;
+  const s = !sf || !lo ? 'size unknown' : sf >= lo * .6 && sf <= hi * 1.5 ? 'size fits ✓' : 'size outside range';
+  const pr = !v || !b.pMax ? 'price unknown' : v >= b.pMin * .6 && v <= b.pMax * 1.5 ? 'price fits ✓' : 'price outside range';
+  return `${s} · ${pr}`;
+}
+export const gradeTag = g => `<span class="qg qg-${g}" title="Buyer qualification from recorded purchases">${g}</span>`;
