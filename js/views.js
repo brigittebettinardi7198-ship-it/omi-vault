@@ -15,7 +15,7 @@ import { contactBadge, contactFormHTML, readContactForm, findOwnerHTML, bindFind
 export { requirements, requirement, companies, company, leases, crm, templatesView, tools, more } from './views2.js';
 export { compsView } from './views3.js';
 export { askView } from './ask.js';
-import { askBoxHTML, bindAskBox } from './ask.js';
+import { askBoxHTML, bindAskBox, AREAS } from './ask.js';
 import { compForm, flyerModal } from './views3.js';
 import { nearbySales, nearbyLease, listingLinks, median, SRC_PUB, SRC_YOU } from './comps.js';
 
@@ -230,7 +230,7 @@ export async function properties(el) {
   const pfd = $('details.pfilt', el); if (pfd) pfd.addEventListener('toggle', () => { OPENF = pfd.open; });
   wireBig(() => properties(el));
   const rows = () => {
-    const q = PF.q.toLowerCase(), dq = q.replace(/\D/g, ''), favSet = new Set(favIds()), OFF = PF.pt.includes('office') ? officeProps() : [];
+    const q = PF.q.toLowerCase(), dq = q.replace(/\D/g, ''), area = q && Object.values(AREAS).find(([re]) => re.test(q)), towns = area ? new Set(area[1].map(t => t.toLowerCase())) : null, favSet = new Set(favIds()), OFF = PF.pt.includes('office') ? officeProps() : [];
     OFF.forEach(p => sc.has(p.id) || sc.set(p.id, scoreOf(p)));
     return (OFF.length ? S.props.concat(OFF) : S.props).filter(p => {
       const d = deal(p);
@@ -239,7 +239,7 @@ export async function properties(el) {
       if (PF.minSf && sfOf(p).sf < +PF.minSf) return false; if (PF.minAc && d.acres < +PF.minAc) return false;
       if (PF.minScore && sc.get(p.id).score < +PF.minScore) return false; if (PF.buyer && !mm.has(p.id)) return false;
       if (PF.fresh && !S.chg.has(p.id)) return false; if (PF.noContact && contactFound(S.owners.get(p.ownerId))) return false; if (PF.dc && !dcOf(p)) return false; if (PF.favs && !favSet.has(p.id)) return false; if (PF.pt.length && !PF.pt.some(k => isType(p, k))) return false; if (PF.ios && !iosOf(p)) return false; if (PF.ls && !lstatMatch(p, PF.ls)) return false; if (PF.lease && !leaseFlag(p)) return false;
-      if (q && !(((val(p, 'address') || '') + ' ' + (val(p, 'city') || '') + ' ' + (val(p, 'taxpayer') || '') + ' ' + oName(p.ownerId)).toLowerCase().includes(q) || (dq.length >= 6 && String(p.pin).replace(/\D/g, '').includes(dq)))) return false;
+      if (towns) { if (!towns.has(String(val(p, 'city') || '').toLowerCase())) return false; } else if (q && !(((val(p, 'address') || '') + ' ' + (val(p, 'city') || '') + ' ' + (val(p, 'taxpayer') || '') + ' ' + oName(p.ownerId)).toLowerCase().includes(q) || (dq.length >= 6 && String(p.pin).replace(/\D/g, '').includes(dq)))) return false;
       return true;
     });
   };
@@ -251,7 +251,7 @@ export async function properties(el) {
   };
   const deb = fn => { let t; return () => { clearTimeout(t); t = setTimeout(fn, 250); }; };
   const upd = () => { PF.q = $('#fq').value; PF.minSf = $('#fsf').value; PF.minAc = $('#fac').value; PF.minScore = $('#fsc').value; draw(); };
-  $$('.filters input', el).forEach(i => i.addEventListener('input', deb(upd)));
+  $$('#fq, #fsf, #fac, #fsc', el).forEach(i => i.addEventListener('input', deb(upd)));
   $$('[data-ls]', el).forEach(b => b.onclick = () => { PF.ls = b.dataset.ls; OPENF = true; properties(el); });
   $$('[data-pt]', el).forEach(b => b.onclick = async () => { const k = b.dataset.pt; PF.pt = PF.pt.includes(k) ? PF.pt.filter(x => x !== k) : [...PF.pt, k]; OPENF = !!b.closest('.pf-panel'); if (k === 'office' && PF.pt.includes(k) && !officeProps().length) { b.textContent = 'Loading office…'; await loadOffice(); } properties(el); });
   $$('[data-chip]', el).forEach(b => b.onclick = () => { const [k, v] = b.dataset.chip.split(':'); if (k === 'county') PF.county = v; else if (k === 'type') PF.type = PF.type === v ? '' : v; else if (k === 'score') PF.minScore = PF.minScore === '70' ? '' : '70'; else PF[k] = !PF[k]; properties(el); });
@@ -273,9 +273,9 @@ function makeMap() {
   return m;
 }
 function plot(m, rows) {
-  const pts = rows.filter(p => p.lat).map(p => ({ p, pr: priorityOf(p), om: scoreOf(p).score })).sort((a, b) => a.om - b.om || a.pr - b.pr).slice(-6000);   // dots colored by off-market score (same scale as badges); hottest drawn on top
+  const pts = rows.filter(p => p.lat).map(p => ({ p, pr: priorityOf(p), om: scoreOf(p).score })).sort((a, b) => a.om - b.om || a.pr - b.pr).slice(matchMedia('(max-width: 820px)').matches ? -1500 : -6000);   // phones: fewer dots (memory)   // dots colored by off-market score (same scale as badges); hottest drawn on top
   const g = L.layerGroup(), rend = L.canvas();
-  pts.forEach(({ p, pr, om }) => L.circleMarker([p.lat, p.lon], { renderer: rend, radius: deal(p).big ? 6 : 4, weight: 1, color: '#0b1220', fillColor: scoreColor(om), fillOpacity: .9 }).bindPopup(`<b>${esc(nc(val(p, 'address') || p.pin))}</b><br>${esc(nc(val(p, 'city') || ''))} · ${sfAc(deal(p))}<br>Est. ${kmoney(deal(p).value)} · comm. ${kmoney(deal(p).commission)}<br>Priority ${pr} · Off-mkt ${scoreOf(p).score}<br><a href="#/property/${p.id}">Open property ▸</a> ${favBtn(p.id)}`).addTo(g));
+  pts.forEach(({ p, pr, om }) => L.circleMarker([p.lat, p.lon], { renderer: rend, radius: deal(p).big ? 6 : 4, weight: 1, color: '#0b1220', fillColor: scoreColor(om), fillOpacity: .9 }).bindPopup(() => `<b>${esc(nc(val(p, 'address') || p.pin))}</b><br>${esc(nc(val(p, 'city') || ''))} · ${sfAc(deal(p))}<br>Est. ${kmoney(deal(p).value)} · comm. ${kmoney(deal(p).commission)}<br>Priority ${pr} · Off-mkt ${scoreOf(p).score}<br><a href="#/property/${p.id}">Open property ▸</a> ${favBtn(p.id)}`).addTo(g));
   return g.addTo(m);
 }
 export function propRow(p) {
