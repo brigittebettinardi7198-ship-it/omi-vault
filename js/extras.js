@@ -290,7 +290,7 @@ export function unzipFile(buf, want) { // reads our own store-only ZIPs
   return null;
 }
 export async function downloadZipBackup() {
-  const bk = buildBackup(), files = [['backup.json', JSON.stringify(bk)], ['README.txt', `Off-Market Industrial backup ${today()}.\nRestore: Tools & data > Restore backup, choose this .zip (or backup.json inside it).\nCSV files are for spreadsheets; restore uses backup.json.`]];
+  const bk = buildBackup(), files = [['backup.json', JSON.stringify(bk)], ['README.txt', `Chicagoland Industrial backup ${today()}.\nRestore: Tools & data > Restore backup, choose this .zip (or backup.json inside it).\nCSV files are for spreadsheets; restore uses backup.json.`]];
   for (const k of ['owners', 'companies', 'leases', 'requirements', 'activities', 'followups', 'comps', 'properties']) if (bk[k] && bk[k].length) files.push([`${k}.csv`, toCSV(bk[k])]);
   const L = lists(); if (Object.keys(L).length) files.push(['lists.csv', toCSV(Object.entries(L).flatMap(([n, l]) => l.ids.map(id => ({ list: n, property_id: id, address: S.prop.get(id) ? val(S.prop.get(id), 'address') : '' }))))]);
   const a = document.createElement('a'); a.href = URL.createObjectURL(zip(files)); a.download = `omi-backup-${today()}.zip`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);

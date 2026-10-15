@@ -12,7 +12,7 @@ import { bindCall } from './callpanel.js';
 import { scoreHelp } from './ui.js';
 
 const NAV = [
-  ['command', 'Command Center', 'M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z'],
+  ['offmarket', 'Off-Market', 'M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z'],
   ['ask', 'Ask (smart search)', 'M15.5 14h-.8l-.3-.3A6.5 6.5 0 1016 9.5a6.5 6.5 0 01-1.6 4.2l.3.3v.8l5 5 1.5-1.5zm-6 0A4.5 4.5 0 1114 9.5 4.5 4.5 0 019.5 14z'],
   ['prospect', 'Prospecting', 'M6.6 10.8a15 15 0 006.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 013 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z'],
   ['properties', 'Properties', 'M3 21V9l9-6 9 6v12h-6v-7H9v7z'],
@@ -30,12 +30,12 @@ const NAV = [
 const MORE_D = 'M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z';
 const ico = k => NAV.find(x => x[0] === k)[2];
 // Five primary destinations; everything else lives under More (nothing removed)
-const PRIMARY = [['command', 'Today', ico('command')], ['prospect', 'Prospect', ico('prospect')], ['properties', 'Properties', ico('properties')], ['owners', 'People', ico('owners')], ['favs', 'Favorites', 'M12 17.3l-6.18 3.7 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.73 1.64 7.03z'], ['more', 'More', MORE_D]];
-const SECTION = { property: 'properties', owner: 'owners', owners: 'owners', requirements: 'owners', requirement: 'owners', companies: 'owners', company: 'owners', command: 'command', prospect: 'prospect', properties: 'properties', near: 'properties', favs: 'favs' };
+const PRIMARY = [['properties', 'Properties', ico('properties')], ['offmarket', 'Off-Market', ico('offmarket')], ['prospect', 'Prospect', ico('prospect')], ['owners', 'People', ico('owners')], ['favs', 'Favorites', 'M12 17.3l-6.18 3.7 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.73 1.64 7.03z'], ['more', 'More', MORE_D]];
+const SECTION = { property: 'properties', owner: 'owners', owners: 'owners', requirements: 'owners', requirement: 'owners', companies: 'owners', company: 'owners', command: 'offmarket', offmarket: 'offmarket', prospect: 'prospect', properties: 'properties', near: 'properties', favs: 'favs' };
 const PEOPLE = [['owners', 'Owners'], ['requirements', 'Buyers'], ['companies', 'Tenants']];
 function shell() {
   document.body.innerHTML = `
-  <header class="topnav"><a class="tn-logo" href="#/command"><img src="icons/icon-192.png" alt=""><span><b>Off-Market</b> Industrial</span></a>
+  <header class="topnav"><a class="tn-logo" href="#/properties"><img src="icons/icon-192.png" alt=""><span><b>Chicagoland</b> Industrial</span></a>
     <nav class="tn-tabs">${PRIMARY.map(([k, l]) => `<a href="#/${k}" data-r="${k}">${l}</a>`).join('')}</nav>
     <div class="search"><input id="gsearch" type="search" placeholder="Search or ask a question" autocomplete="off"><div id="gresults" class="gresults hidden"></div></div><button class="btn sm hidden" id="install">Install app</button></header>
   <div id="bkbanner"></div><main id="view"></main>
@@ -63,11 +63,11 @@ function bindSearch() {
   }
 }
 async function route() {
-  const [r, id] = (location.hash.replace(/^#\/?/, '') || 'command').split('/');
-  const sec = SECTION[r] || (r ? 'more' : 'command'); $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === sec));
+  const [r, id] = (location.hash.replace(/^#\/?/, '') || 'properties').split('/');
+  const sec = SECTION[r] || (r ? 'more' : 'properties'); $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === sec));
   X.cmpTray();
   const el = $('#view'); el.scrollTop = 0; window.scrollTo(0, 0); backupBanner();
-  const fn = { command: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
+  const fn = { command: V.command, offmarket: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
   try { await fn(el, id && decodeURIComponent(id)); if (['owners', 'requirements', 'companies'].includes(r) && !id) { const pg = $('.page', el); if (pg) pg.insertAdjacentHTML('afterbegin', `<div class="seg peopleseg">${PEOPLE.map(([k, l]) => `<a class="${k === r ? 'on' : ''}" href="#/${k}">${l}</a>`).join('')}</div>`); } } catch (e) { console.error(e); el.innerHTML = `<div class="page"><h2>Something went wrong</h2><pre>${esc(e.stack || e)}</pre></div>`; }
 }
 function backupBanner() {

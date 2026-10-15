@@ -1,7 +1,7 @@
 {
-  "name": "Off-Market Industrial",
-  "short_name": "Off-Market",
-  "description": "Private industrial broker intelligence: off-market owners, buyers, follow-ups. Data stays on your device.",
+  "name": "Chicagoland Industrial",
+  "short_name": "CHI Industrial",
+  "description": "Chicagoland industrial property search: buildings, land, owners, sales, buyers, plus an off-market section. Data stays on your device.",
   "start_url": "./index.html#/command",
   "scope": "./",
   "display": "standalone",

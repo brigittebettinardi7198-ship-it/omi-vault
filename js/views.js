@@ -57,7 +57,7 @@ export async function command(el) {
   const valOf = x => x.od.value ? kmoney(x.od.value) : x.props.length + ' parcel' + (x.props.length > 1 ? 's' : '');
   const why = x => { const r = x.fu && x.fu.due <= today() ? ['Follow-up due'] : []; const sw = x.best ? shortWhy(x.best.x.reasons) : ''; if (sw) r.push(sw); return r.join(' · ') || 'Top of your call list'; };
   el.innerHTML = `<div class="page cc today2">
-  <div class="hello"><h1>Today</h1><div class="muted">${new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</div></div>
+  <div class="hello"><h1>Off-Market</h1><div class="muted">Owners likely to sell, who to call next, and off-market signals · ${new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</div></div>
   ${nx ? `<section class="callnext"><div class="cn-l"><div class="cn-k">Call next</div><a class="cn-name" href="#/owner/${nx.o.id}">${esc(nc(nx.o.name))}</a><div class="cn-why">${esc(why(nx))}</div></div>
     <div class="cn-r"><div class="cn-v"><b>${valOf(nx)}</b><span>est. value</span></div><button class="btn primary big" data-call="o:${nx.o.id}">Call</button></div></section>` : '<section class="callnext"><div class="muted">Nothing ranked yet. Add a buyer or turn off "Big deals only" below.</div></section>'}
   ${rest.length ? `<section class="upnext"><div class="lbl">Up next</div>${rest.map(x => `<a class="un-row" href="#/prospect/${x.o.id}"><span class="un-n">${esc(nc(x.o.name))}</span><span class="un-v">${valOf(x)}</span></a>`).join('')}<a class="un-all" href="#/prospect">See the full call list</a></section>` : ''}<a class="btn nearbtn" href="#/near" aria-label="Near me: closest high-score properties">◎ Near me</a>
@@ -183,7 +183,7 @@ const PF = { county: '', q: '', type: '', minSf: '', minAc: '', minScore: '', bu
 // all available list columns; the column chooser stores the visible set in settings
 const PCOLS = (sc, mm) => [
   { k: 'pr', l: 'Priority', h: p => `<b class="rank">${priorityOf(p)}</b>`, v: p => priorityOf(p) },
-  { k: 'om', l: 'Score', h: p => scorePill(sc.get(p.id).score), v: p => sc.get(p.id).score, def: 1 },
+  { k: 'om', l: 'Off-mkt', h: p => scorePill(sc.get(p.id).score), v: p => sc.get(p.id).score, def: 1 },
   { k: 'address', l: 'Address', h: p => `${favBtn(p.id)} <a href="#/property/${p.id}">${esc(nc(val(p, 'address') || p.pin))}</a>${lstatBadge(p)} ${bigTag(deal(p))}${mm.has(p.id) ? ' <span class="tag match">BUYER</span>' : ''}${S.chg.has(p.id) ? ' <span class="kt k-fresh">fresh</span>' : ''}<div class="sub">${esc(val(p, 'city') || val(p, 'municipality') || '')}${val(p, 'county') ? ' · ' + esc(val(p, 'county')) : ''}</div>`, v: p => val(p, 'address') || '', def: 1, fixed: 1 },
   { k: 'city', l: 'City', h: p => esc(val(p, 'city') || val(p, 'municipality') || ''), v: p => val(p, 'city') || '' },
   { k: 'co', l: 'County', h: p => esc(val(p, 'county')), v: p => val(p, 'county') },
@@ -243,8 +243,8 @@ export async function properties(el) {
   };
   let mapObj = null, layer = null;
   const draw = () => {
-    const r = rows(); $('#pcount').textContent = `${r.length.toLocaleString()} properties · best opportunities first`;
-    if (view !== 'map') table($('#res'), r, ALL.filter(c => c.fixed || shownK.includes(c.k)), { sort: 'pr', sortCol: ALL.find(c => c.k === 'pr'), page: view === 'split' ? 100 : 200, href: p => `#/property/${p.id}`, ascKeys: ['address', 'city', 'co', 'o', 'st', 'cls', 'ms'] });
+    const r = rows(); $('#pcount').textContent = `${r.length.toLocaleString()} properties · highest est. value first`;
+    if (view !== 'map') table($('#res'), r, ALL.filter(c => c.fixed || shownK.includes(c.k)), { sort: 'v', sortCol: ALL.find(c => c.k === 'v'), page: view === 'split' ? 100 : 200, href: p => `#/property/${p.id}`, ascKeys: ['address', 'city', 'co', 'o', 'st', 'cls', 'ms'] });
     if (view !== 'list') { if (!mapObj) mapObj = makeMap(); if (mapObj) { if (layer) layer.remove(); layer = plot(mapObj, r); setTimeout(() => mapObj.invalidateSize(), 50); } }
   };
   const deb = fn => { let t; return () => { clearTimeout(t); t = setTimeout(fn, 250); }; };

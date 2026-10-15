@@ -13,7 +13,7 @@ export async function downloadBackup() {
   await setSetting('lastBackup', new Date().toISOString()); toast('Backup downloaded. Keep it in iCloud Drive, Google Drive or email it to yourself.');
 }
 export async function applyBackup(bk) {
-  if (!bk || bk.app !== 'omi-broker') throw new Error('Not an Off-Market Industrial backup');
+  if (!bk || bk.app !== 'omi-broker') throw new Error('Not a Chicagoland Industrial (Off-Market Industrial) backup');
   for (const s of db.STORES) if (bk[s]) await db.putMany(s, s === 'properties' ? bk[s].map(p => ({ ...(S.prop.get(p.id) || {}), ...p })) : bk[s]);
   await loadAll();
 }
