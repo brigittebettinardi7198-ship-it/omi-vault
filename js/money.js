@@ -133,7 +133,7 @@ export function dealsView(el) {
   $$('[data-cfg]', el).forEach(i => i.onchange = async () => { const m = { ...cfg() }; m[i.dataset.cfg] = i.type === 'number' ? +i.value : i.value; await setSetting('money', m); BIG = null; re(); });
   $('#nd', el).onclick = async () => { const D2 = deals(); D2.unshift({ id: uid('d'), name: 'New deal', stage: 'Lead', kind: 'sale', value: '', created: t }); await saveDeals(D2); re(); };
   $$('.deal', el).forEach(row => { const id = row.dataset.did;
-    $$('[data-df]', row).forEach(i => i.onchange = async () => { await upd(id, d => { d[i.dataset.df] = i.type === 'number' ? (i.value === '' ? '' : +i.value) : i.value; if (i.dataset.df === 'stage' && i.value === 'Closed' && !d.close) d.close = today(); return d; }); re(); });
+    $$('[data-df]', row).forEach(i => i.onchange = async () => { await upd(id, d => { d[i.dataset.df] = i.type === 'number' ? (i.value === '' ? '' : +i.value) : i.value; if (i.dataset.df === 'stage') d.moved = today(); if (i.dataset.df === 'stage' && i.value === 'Closed' && !d.close) d.close = today(); return d; }); re(); });
     $$('[data-chk]', row).forEach(i => i.onchange = async () => { await upd(id, d => { d.chk = { ...(d.chk || {}), [i.dataset.chk]: i.checked }; return d; }); re(); });
     $$('[data-kd]', row).forEach(i => i.onchange = async () => { const d0 = deals().find(d => d.id === id); await upd(id, d => { d[i.dataset.kd] = i.value; return d; }); const l = KD.find(x => x[0] === i.dataset.kd)[1];
       if (i.value) for (const n of [7, 2]) { const due = addDays(i.value, -n); if (due >= today()) await addFollowup({ ownerId: d0.oid || '', propertyId: d0.pid || '', due, note: `${d0.name}: ${l} in ${n} days (${i.value})` }); } toast('Saved · reminders set'); re(); });

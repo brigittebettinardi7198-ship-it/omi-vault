@@ -37,16 +37,16 @@ function wireBig(rerender) { const b = $('#bigOnly'); if (b) b.onchange = async 
 // ================= COMMAND CENTER =================
 export async function command(el) {
   const big = bigOn(), now = today();
-  const pairs = dealPairs(12, big), calls = callList(30, big);
+  const pairs = dealPairs(12, big), cl200 = callList(200, false), calls = big ? callList(30, big) : cl200.slice(0, 30);   // one scan instead of two
   const fus = [...S.followups.values()].filter(f => !f.done).sort((a, b) => a.due.localeCompare(b.due));
   const overdue = fus.filter(f => f.due < now), due = fus.filter(f => f.due === now), soon = fus.filter(f => f.due > now && f.due <= addDays(now, 7));
   const reqs = [...S.requirements.values()].filter(r => (r.status || 'Active') === 'Active');
   const sc = allScores();
-  const opps = S.props.filter(p => !big || deal(p).big).map(p => ({ p, pr: priorityOf(p) })).sort((a, b) => b.pr - a.pr).slice(0, 15);
+  const opps = []; for (const p of S.props) { if (big && !deal(p).big) continue; const pr = priorityOf(p); if (opps.length < 15 || pr > opps[14].pr) { opps.push({ p, pr }); opps.sort((a, b) => b.pr - a.pr); if (opps.length > 15) opps.pop(); } }   // top 15 without copying 40k items
   const buyers = possibleBuyers(12);
   const { lastAct } = idx();
   const stale = [...S.owners.values()].filter(o => o.stage && !CLOSED_STAGES.includes(o.stage) && o.stage !== 'New' && (!lastAct.get(o.id) || (Date.now() - lastAct.get(o.id)) / 864e5 > 45) && !ownerFollowups(o.id).length).slice(0, 15);
-  const rq = callList(200, false).filter(c => !contactFound(c.o) && !c.o.needsResearch && (c.od?.big || (c.best?.x.score || 0) >= 70)).map(c => c.o);
+  const rq = cl200.filter(c => !contactFound(c.o) && !c.o.needsResearch && (c.od?.big || (c.best?.x.score || 0) >= 70)).map(c => c.o);
   const toq = trueOwnerQueue(40, big);
   const research = [...S.owners.values()].filter(o => o.needsResearch).concat(rq).slice(0, 20);
   const fresh = (S.changes.ev || []).filter(e => daysBetween(e.d, now) <= 30 && S.prop.has(e.id) && e.t !== 'new').map(e => ({ e, p: S.prop.get(e.id) })).filter(x => !big || deal(x.p).big).sort((a, b) => b.e.d.localeCompare(a.e.d) || deal(b.p).value - deal(a.p).value);
