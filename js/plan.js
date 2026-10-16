@@ -134,7 +134,8 @@ function feedHTML() {
 }
 // ---------- view ----------
 export async function planView(el, sub) {
-  const rows = dailyPlan(), due = dueList(), t = today();
+  const RS = await import('./resi.js'), resi = await RS.resiCalls().catch(() => []);
+  const rows = dailyPlan().slice(0, 10 - resi.length), due = dueList(), t = today();
   const card = (c, i) => `<div class="pcall"><div class="pc-top"><span class="pc-n">${i + 1}</span><div class="pc-who"><a href="#/owner/${esc(c.o.id)}"><b>${esc(nc(c.o.name))}</b></a><a class="xs" href="#/property/${esc(c.p.id)}">${esc(nc(val(c.p, 'address') || ''))}, ${esc(nc(val(c.p, 'city') || ''))}</a></div><button class="bact primary pc-call" data-call="o:${esc(c.o.id)}">Call</button></div>
     <div class="pc-why">${esc(reason(c))}</div>${rollup(c.o.id)}${lastOut(c.o.id)}
     <details class="pc-sc"><summary>Script</summary><p>${esc(script(c))}</p></details>${outBtns(c.o.id, c.p.id)}${tagRow(c.o.id, c.p.id)}</div>`;
@@ -142,10 +143,10 @@ export async function planView(el, sub) {
   const fd = fuDays();
   const big90 = !!setting('big90', false), bigL = big90 ? bigDealLeads().slice(0, 10) : [];
   el.innerHTML = `<div class="page plan"><div class="hello"><h1>Today</h1><p class="explain">Your path to the goal, call-backs, then your 10 calls. Tap an outcome after each call.</p></div>
-    ${overdueHTML()}${pathHTML()}${targetsHTML()}${guardHTML()}
+    ${overdueHTML()}${RS.speedHTML()}${pathHTML()}${targetsHTML()}${guardHTML()}
     ${due.length ? `<h2 class="plan-h">Call back today <span class="cnt">${due.length}</span></h2>${due.slice(0, 15).map(dueCard).join('')}` : ''}
     <div class="ch" style="margin-top:14px"><h2 class="plan-h" style="margin:0">${big90 ? '90-Day Big Deal calls' : 'Your 10 calls'} · ${new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</h2><label class="fchip" style="min-height:44px"><input type="checkbox" id="big90" ${big90 ? 'checked' : ''}> 90-Day Big Deal</label></div>
-    ${big90 ? (bigL.length ? bigL.map(bigCardHTML).join('') : '<div class="muted">No leads meet the 90-Day rules (take-home and a deadline trigger). Lower the minimum in Deals settings or widen your territory.</div>') : rows.length ? rows.map(card).join('') : '<div class="muted">No owners with strong sell signals in your territory right now.</div>'}
+    ${big90 ? (bigL.length ? bigL.map(bigCardHTML).join('') : '<div class="muted">No leads meet the 90-Day rules (take-home and a deadline trigger). Lower the minimum in Deals settings or widen your territory.</div>') : (rows.length || resi.length) ? rows.map(card).join('') + resi.map((x, i) => RS.resiCardHTML(x, rows.length + i + 1, outBtns)).join('') : '<div class="muted">No owners with strong sell signals in your territory right now.</div>'}
     ${scorecardHTML()}
     <h2 class="plan-h">Fastest money</h2>${buyerAlertsHTML()}${estateListHTML()}<div class="xs muted"><a href="#/big">Big Deals ›</a></div>
     <details class="card" style="padding:10px;margin-top:12px"><summary><b>More for today</b> <span class="xs muted">drive day, record changes, your files, more lead types</span></summary>
@@ -153,6 +154,7 @@ export async function planView(el, sub) {
     ${feedHTML()}
     <h2 class="plan-h">Your CoStar / LoopNet / Crexi files <span class="xs muted">(private, this device only)</span></h2><button class="btn" id="impbtn" style="width:100%;margin-bottom:8px">Import CoStar / LoopNet / Crexi file</button><div id="impx"><div class="xs muted">Loading…</div></div>
     <div id="b3x"></div>
+    ${[['jsold', 'Just sold near your owners (residential)'], ['rbuy', 'Residential buyer leads'], ['inv', 'Investor buyers (2-6 units)']].map(([k, l]) => `<details class="feedmore" data-rs="${k}"><summary><b>${l}</b></summary><div class="rsbody xs">Loading…</div></details>`).join('')}
     <details class="card advset"><summary>Advanced: call script and follow-up timing</summary>
       <label class="full">Script (use {address}, {city}, {hook}, {owner})<textarea id="scr" rows="3">${esc(setting('script', SCRIPT_DEF) || SCRIPT_DEF)}</textarea></label>
       <div class="dl-f">${[['na', 'No answer'], ['vm', 'Left VM'], ['talked', 'Talked'], ['int', 'Interested']].map(([k, l]) => `<label>${l}: days<input data-fud="${k}" type="number" inputmode="numeric" value="${fd[k]}"></label>`).join('')}</div>
@@ -166,5 +168,7 @@ export async function planView(el, sub) {
   $('#drive').onclick = () => { const r = driveRoute(candidates().slice(0, 80)); $('#driveout').innerHTML = `<section class="card" style="padding:12px;margin-bottom:10px"><h2 style="margin:0">Drive day</h2>${driveHTML(r)}</section>`; };
   $('#scr').onchange = e => setSetting('script', e.target.value || SCRIPT_DEF);
   $$('[data-fud]', el).forEach(i => i.onchange = () => { const v = { ...(setting('fuDays', {}) || {}) }; v[i.dataset.fud] = +i.value || FU_DEF[i.dataset.fud]; setSetting('fuDays', v); });
+  RS.bindResi(el, re); RS.bindBuyers(el, re);
+  $$('[data-rs]', el).forEach(d => d.addEventListener('toggle', async () => { if (!d.open || d.dataset.done) return; d.dataset.done = 1; const b = d.querySelector('.rsbody'); b.innerHTML = await ({ jsold: RS.justSoldHTML, rbuy: RS.buyersHTML, inv: RS.investorsHTML })[d.dataset.rs](); RS.bindBuyers(b, re); }));
   bindMoney(el, re); $('#big90', el).onchange = async e => { await setSetting('big90', e.target.checked); re(); };
 }

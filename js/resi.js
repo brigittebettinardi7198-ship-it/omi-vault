@@ -1,0 +1,40 @@
+// Residential (master spec section 3): Today cards, just-sold circle, investor buyers, buyer leads with speed-to-lead, commercial bridge.
+import { $, $$, esc, fmt, kmoney, today, toast, uid } from './util.js';
+import { setting, setSetting, firm } from './store.js';
+import { nc } from './extras.js';
+import { scored, classLabel, justSold, investorBuyers } from './cre.js';
+import { takeHomeValue } from './money.js';
+
+const dncR = () => setting('dncResi', {}) || {};
+export async function resiCalls() { const cap = +setting('resiCap', 3); if (!cap) return []; const { top } = await scored(); const D = dncR(), outc = setting('outc', {}) || {};
+  return top.filter(x => !D[x.p.pin] && !((outc['r:' + x.p.pin] || [])[0] || {}).o?.match(/^no$/)).slice(0, cap); }
+const ghref = x => `https://www.google.com/search?q=${encodeURIComponent(`"${nc(x.p.own)}" ${nc(x.p.mc || x.p.city)} phone`)}`;
+export function resiScript(x) { return `Hi, this is [your name] with ${firm()}. I'm calling about ${nc(x.p.a)}. ${x.kind === 'resi' ? 'Buyers are active on your street right now.' : 'Investors are active in your area right now.'} Would you consider selling if the price and timing were right? Also, do you own any other property or a business?`; }
+export function resiCardHTML(x, i, outBtns) { const oid = 'r:' + x.p.pin;
+  return `<div class="pcall"><div class="pc-top"><span class="pc-n">${i}</span><div class="pc-who"><b>${esc(nc(x.p.own || 'Owner'))}</b><span class="xs">${esc(nc(x.p.a))}, ${esc(nc(x.p.city))}</span></div><a class="bact primary pc-call" target="_blank" rel="noopener" href="${ghref(x)}">Find phone</a></div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin:4px 0"><span class="tag">${esc(classLabel(x.p.c))}</span>${x.comm ? '<span class="tag" style="background:#e0e7ff">Commercial opportunity</span>' : ''}${x.th ? `<span class="tag" style="background:#dcfce7;color:#166534">≈ ${kmoney(x.th)} to you (est.)</span>` : ''}</div>
+  <div class="pc-why">${esc(x.R.join(' · '))}</div><details class="pc-sc"><summary>Script</summary><p>${esc(resiScript(x))}</p></details>${outBtns(oid, '')}<button class="btn sm ghost" data-rdnc="${esc(x.p.pin)}">Do not call</button>
+  <div class="xs muted">Value estimate = median recent Cook sale for this property class in your territory. Cook County open data.</div></div>`; }
+export function bindResi(root, re) { $$('[data-rdnc]', root).forEach(b => b.onclick = async () => { const D = { ...dncR(), [b.dataset.rdnc]: today() }; await setSetting('dncResi', D); toast('Marked DNC'); re(); }); }
+// ---- folded sections ----
+export async function justSoldHTML() { const L = await justSold(); if (!L.length) return '<div class="muted xs">No home sales in your territory in the last 120 days (Cook sales post about 2 months late) (or territory not loaded: Deals > Territory).</div>';
+  return L.map(({ r, p, nb }) => { const scr = `A home near yours just sold for ${kmoney(r.sp)}. Buyers are active on your street. Curious what yours would bring?`;
+    return `<div class="pcall"><div class="pc-who"><b>${esc(nc(p.a))}</b><span class="xs muted">${esc(classLabel(r.c))} · sold ${kmoney(r.sp)} on ${esc(r.d)} (Cook Parcel Sales)</span></div><details class="pc-sc"><summary>Call the ${nb.length} nearest similar owners</summary><p>${esc(scr)}</p>${nb.map(n => `<div class="nbr"><div>${esc(nc(n.x.a))}<div class="xs muted">${esc(nc(n.x.own || ''))} · ${n.d.toFixed(2)} mi</div></div><a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/search?q=${encodeURIComponent(`"${nc(n.x.own)}" ${nc(n.x.mc || n.x.city)} phone`)}">Find phone</a></div>`).join('')}</details></div>`; }).join(''); }
+export async function investorsHTML() { const L = await investorBuyers(); if (!L.length) return '<div class="muted xs">No repeat 2-6 unit buyers found (or territory not loaded).</div>';
+  return `<div class="xs muted">Buyers of 2-6 unit buildings in your territory, last 3 years (Cook Parcel Sales). Grade A = 5+, B = 3-4, C = 2.</div>${L.map(e => `<div class="nbr"><div><b>${esc(nc(e.name))}</b><div class="xs muted">${e.n} buys · last ${esc(e.last)}</div></div><span class="tag">${e.grade}</span></div>`).join('')}`; }
+export async function bridgeHTML() { const { top } = await scored(); const L = top.filter(x => x.comm).slice(0, 25); if (!L.length) return '<div class="muted xs">Load your territory (below) to find residential owners with commercial potential.</div>';
+  return L.map(x => `<div class="nbr"><div><b>${esc(nc(x.p.a))}</b><div class="xs muted">${esc(nc(x.p.own))} · ${esc(classLabel(x.p.c))}${x.nOwn >= 3 ? ` · owns ${x.nOwn} here` : ''}</div></div><a class="btn sm" target="_blank" rel="noopener" href="${ghref(x)}">Find phone</a></div>`).join(''); }
+// ---- 3.6 buyer leads + speed-to-lead ----
+const RB = () => setting('rbuyers', []) || [];
+export function speedHTML() { const L = RB().filter(b => !b.contacted); if (!L.length) return ''; const now = Date.now();
+  return `<div class="card" style="background:#fee2e2;border-color:#dc2626;padding:12px;margin:8px 0"><b>New buyer leads: call now</b>${L.map(b => { const m = Math.floor((now - b.ts) / 60000); return `<div class="nbr"><div><b>${esc(b.name)}</b> <span class="xs">${m < 60 ? m + ' min' : Math.floor(m / 60) + ' h'} waiting</span><div class="xs muted">${esc(b.range || '')} · ${esc(b.area || '')}</div></div>${b.phone ? `<a class="btn sm primary" href="tel:${esc(String(b.phone).replace(/[^\d+]/g, ''))}">Call</a>` : ''}<button class="btn sm" data-rbdone="${esc(b.id)}">Contacted</button></div>`; }).join('')}</div>`; }
+const rng = t => { const n = String(t || '').toUpperCase().match(/[\d.]+\s*[KM]?/g) || []; const v = n.map(x => parseFloat(x) * (/M/.test(x) ? 1e6 : /K/.test(x) || parseFloat(x) < 10000 ? 1e3 : 1)); return v.length ? [Math.min(...v), Math.max(...v)] : null; };
+export async function buyersHTML() { const L = RB(), { top } = await scored();
+  const fit = b => { const r = rng(b.range), a = String(b.area || '').toLowerCase(); return top.filter(x => x.v && (!r || (x.v >= r[0] * .9 && x.v <= r[1] * 1.1)) && (!a || a.includes(x.p.z) || a.includes(String(x.p.city).toLowerCase()))).slice(0, 3); };
+  return `<button class="btn primary" id="rbadd" style="width:100%">+ Buyer lead (open house / inquiry)</button>${L.map(b => `<div class="nbr"><div><b>${esc(b.name)}</b> ${b.pre ? '<span class="tag">Pre-approved</span>' : ''}<div class="xs muted">${esc(b.range || '')} · ${esc(b.area || '')} · ${esc(b.timeline || '')} · ${esc(b.phone || '')}</div></div>${(() => { const f = fit(b); return f.length ? `<div class="xs">Off-market owners that fit: ${f.map(x => esc(nc(x.p.a)) + ' (' + kmoney(x.v) + ' est.)').join('; ')}</div>` : ''; })()}</div>${b.phone ? `<a class="btn sm" href="tel:${esc(String(b.phone).replace(/[^\d+]/g, ''))}">Call</a>` : ''}</div>`).join('')}`; }
+export function bindBuyers(root, re) {
+  $$('[data-rbdone]', root).forEach(b => b.onclick = async () => { await setSetting('rbuyers', RB().map(x => x.id === b.dataset.rbdone ? { ...x, contacted: Date.now() } : x)); re(); });
+  const a = $('#rbadd', root); if (a) a.onclick = () => import('./ui.js').then(({ modal }) => modal(`<h2>Buyer lead</h2><div class="fgrid2">${[['name', 'Name'], ['phone', 'Phone'], ['range', 'Price range (e.g. 300-450K)'], ['area', 'Area / ZIP'], ['timeline', 'Timeline']].map(([k, l]) => `<label>${l}<input data-rb="${k}"></label>`).join('')}<label style="min-height:44px"><input type="checkbox" data-rb="pre"> Pre-approved</label></div><div class="mfoot"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" id="rbs">Save</button></div>`, (m, close) => {
+    $('#rbs', m).onclick = async () => { const o = { id: uid('rb'), ts: Date.now() }; $$('[data-rb]', m).forEach(i => o[i.dataset.rb] = i.type === 'checkbox' ? i.checked : i.value.trim()); if (!o.name) return; await setSetting('rbuyers', [o, ...RB()]); close(); re(); }; }));
+}
+export function rbMatches() { return RB(); }
