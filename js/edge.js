@@ -17,7 +17,7 @@ export function valuePitch(p) {
 // ---------- 8. tax shock (Cook: assessment change vs prior year) ----------
 const COOK_EQ = 3.0163, COOK_RATE = 0.10;   // 2024 Cook equalizer; ~10% typical suburban composite rate (ESTIMATE)
 export function taxShock(p) {
-  const chg = +p.avchg, av = +val(p, 'assessedTotal'); if (!chg || chg < 10 || !av) return null;
+  const chg = +p.avchg, av = +val(p, 'assessedTotal'); if (!chg || chg < 25 || !av) return null;
   const tax = +val(p, 'annualTax'), dAV = av * chg / (100 + chg);
   const up = tax ? tax * chg / (100 + chg) : (p.co === 'Cook' ? dAV * COOK_EQ * COOK_RATE : 0);
   return up >= 1000 ? { pct: Math.round(chg), up, basis: tax ? 'your tax bill scaled by the assessment jump' : `assessed jump × Cook equalizer ${COOK_EQ} × ~${COOK_RATE * 100}% typical tax rate` } : null;
@@ -38,7 +38,7 @@ function estateHTML(p) {
   const ob = `https://www.google.com/search?q=${encodeURIComponent(`site:legacy.com "${name.replace(/\b(TRUST|TR|TRUSTEE|ESTATE OF|LIVING|REVOCABLE|DECLARATION|DTD|U\/T\/A|C\/O)\b.*$/i, '').trim()}" ${city}`)}`;
   return `<div class="edge-row"><b>Estate check</b> <span class="xs muted">${esc(p.ot)} owner, held 20+ years</span>${on ? ' <span class="tag" style="background:#7c3aed;color:#fff">Estate</span>' : ''}
     <div class="btnrow"><a class="btn sm" target="_blank" rel="noopener" href="${ob}">Check obituaries</a><a class="btn sm" target="_blank" rel="noopener" href="${PROBATE[p.co] || PROBATE.Cook}">Probate (${esc(p.co)} circuit clerk)</a><button class="btn sm ${on ? '' : 'primary'}" data-estate="${esc(p.id)}">${on ? 'Unmark estate' : 'Mark estate confirmed'}</button></div>
-    <div class="xs muted">Obituaries search Legacy.com via Google. Probate: search the owner's name in the clerk's case search${p.co === 'Cook' ? ' (Probate division)' : ''}.</div></div>`;
+    <details class="pc-sc"><summary>Gentle script</summary><p>${esc(`Hi, this is [your name] with ${firm()}. First, I'm sorry for your loss. I'm not calling to push anything. When families are ready to sort out a property like ${nc(val(p, 'address') || 'this one')}, I can give a free, private value estimate and handle it quietly. Would it help if I sent that over?`)}</p></details><div class="xs muted">Obituaries search Legacy.com via Google. Probate: search the owner's name in the clerk's case search${p.co === 'Cook' ? ' (Probate division)' : ''}.</div></div>`;
 }
 export function propertyEdgeHTML(p) {
   const v = valuePitch(p), t = taxShock(p), comps = p.lat ? nearbySales(p, 3) : [], est = estateHTML(p);

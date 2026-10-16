@@ -4,6 +4,7 @@ import { $, $$, esc, fmt, kmoney, today, addDays, daysBetween, toast, uid, loadS
 import { S, val, save, addFollowup, firm } from './store.js';
 import { sfOf, matches } from './scoring.js';
 import { modal } from './ui.js';
+import { takeHome, cfg } from './money.js';
 import { nc } from './extras.js';
 
 // ---------- tiny private store ----------
@@ -25,11 +26,12 @@ export const FIELDS = {
   lender: [/lender/], loan: [/loan amount|mortgage amount|original loan/], maturity: [/maturity|loan due/], purchaseDate: [/purchase date|acquisition date|last sale date/],
   name: [/^(contact |inquirer |buyer )?name$|first name|full name|contact$/], company: [/company|organization/], email: [/e-?mail/], phone: [/phone|mobile|cell/],
   sfMin: [/min.*(sf|size)|size from/], sfMax: [/max.*(sf|size)|size to/], priceMax: [/max.*(price|budget)|budget|price to/], ptype: [/property type|asset type|use/],
+  tenant: [/^tenant( name)?$|tenant$|occupant|company name/], leaseExp: [/(lease )?expir|lease end|exp(iration)? date/],
   lat: [/^lat/], lon: [/^lon|^lng/],
 };
-const LABEL = { address: 'Address', city: 'City', zip: 'ZIP', owner: 'Owner', status: 'For sale / lease / status', ask: 'Asking price', rent: 'Asking rent', sf: 'Building / available SF', vacant: 'Vacant SF', occ: 'Occupancy %', listDate: 'Date listed / on market', dom: 'Days on market', saleDate: 'Sale date', salePrice: 'Sale price', leaseDate: 'Lease signed date', lender: 'Lender', loan: 'Loan amount', maturity: 'Loan maturity', purchaseDate: 'Purchase date', name: 'Contact name', company: 'Company', email: 'Email', phone: 'Phone', sfMin: 'Min SF wanted', sfMax: 'Max SF wanted', priceMax: 'Max price', ptype: 'Property type', lat: 'Latitude', lon: 'Longitude' };
-const KINDS = { listing: ['Listings (for sale / for lease)', ['address', 'city', 'zip', 'owner', 'status', 'ask', 'rent', 'sf', 'vacant', 'occ', 'listDate', 'dom', 'lender', 'loan', 'maturity', 'purchaseDate', 'lat', 'lon']], inquiry: ['Buyer / tenant inquiries (LoopNet, Crexi)', ['name', 'company', 'email', 'phone', 'status', 'ptype', 'sfMin', 'sfMax', 'sf', 'priceMax', 'city', 'address']], comp: ['Sale / lease comps', ['address', 'city', 'zip', 'status', 'sf', 'saleDate', 'salePrice', 'leaseDate', 'rent', 'lender', 'loan', 'maturity', 'lat', 'lon']] };
-const guessKind = cols => { const c = cols.join(' ').toLowerCase(); return /inquir|lead|e-?mail/.test(c) && !/sale price|asking price/.test(c) ? 'inquiry' : /sale date|sold|closed/.test(c) ? 'comp' : 'listing'; };
+const LABEL = { address: 'Address', city: 'City', zip: 'ZIP', owner: 'Owner', status: 'For sale / lease / status', ask: 'Asking price', rent: 'Asking rent', sf: 'Building / available SF', vacant: 'Vacant SF', occ: 'Occupancy %', listDate: 'Date listed / on market', dom: 'Days on market', saleDate: 'Sale date', salePrice: 'Sale price', leaseDate: 'Lease signed date', lender: 'Lender', loan: 'Loan amount', maturity: 'Loan maturity', purchaseDate: 'Purchase date', name: 'Contact name', company: 'Company', email: 'Email', phone: 'Phone', sfMin: 'Min SF wanted', sfMax: 'Max SF wanted', priceMax: 'Max price', ptype: 'Property type', lat: 'Latitude', lon: 'Longitude', tenant: 'Tenant', leaseExp: 'Lease expiration' };
+const KINDS = { listing: ['Listings (for sale / for lease)', ['address', 'city', 'zip', 'owner', 'status', 'ask', 'rent', 'sf', 'vacant', 'occ', 'listDate', 'dom', 'lender', 'loan', 'maturity', 'purchaseDate', 'lat', 'lon']], inquiry: ['Buyer / tenant inquiries (LoopNet, Crexi)', ['name', 'company', 'email', 'phone', 'status', 'ptype', 'sfMin', 'sfMax', 'sf', 'priceMax', 'city', 'address']], tenant: ['Tenants / lease expirations (CoStar)', ['tenant', 'address', 'city', 'sf', 'leaseExp', 'rent', 'phone']], comp: ['Sale / lease comps', ['address', 'city', 'zip', 'status', 'sf', 'saleDate', 'salePrice', 'leaseDate', 'rent', 'lender', 'loan', 'maturity', 'lat', 'lon']] };
+const guessKind = cols => { const c = cols.join(' ').toLowerCase(); return /tenant/.test(c) && /expir|lease end/.test(c) ? 'tenant' : /inquir|lead|e-?mail/.test(c) && !/sale price|asking price/.test(c) ? 'inquiry' : /sale date|sold|closed/.test(c) ? 'comp' : 'listing'; };
 const guess = (cols, k) => cols.find(c => FIELDS[k].some(re => re.test(c.toLowerCase().trim()))) || '';
 const num = v => { const n = parseFloat(String(v ?? '').replace(/[$,%\s]/g, '').replace(/^\((.*)\)$/, '-$1')); return isFinite(n) ? n : 0; };
 const dt = v => { if (v === '' || v == null) return ''; if (typeof v === 'number' && v > 20000 && v < 80000) return new Date(Date.UTC(1899, 11, 30) + v * 864e5).toISOString().slice(0, 10); const d = new Date(v); return isNaN(d) ? '' : d.toISOString().slice(0, 10); };
@@ -52,7 +54,7 @@ export function importModal(after) {
         $('#imk', m).onchange = ev => { kind = ev.target.value; draw(); };
         $('#imgo', m).onclick = async () => {
           const map = {}; $$('[data-imap]', m).forEach(s => { if (s.value) map[s.dataset.imap] = s.value; });
-          const out = rows.map(r => { const o = {}; for (const k in map) { const v = r[map[k]]; o[k] = /^(ask|rent|sf|vacant|occ|dom|salePrice|loan|sfMin|sfMax|priceMax|lat|lon)$/.test(k) ? num(v) : /Date$|maturity/.test(k) ? dt(v) : String(v ?? '').trim(); } return o; }).filter(o => Object.values(o).some(Boolean));
+          const out = rows.map(r => { const o = {}; for (const k in map) { const v = r[map[k]]; o[k] = /^(ask|rent|sf|vacant|occ|dom|salePrice|loan|sfMin|sfMax|priceMax|lat|lon)$/.test(k) ? num(v) : /Date$|maturity|leaseExp/.test(k) ? dt(v) : String(v ?? '').trim(); } return o; }).filter(o => Object.values(o).some(Boolean));
           const snap = { id: uid('imp'), kind, date: $('#imd', m).value || today(), ts: Date.now(), fname: f.name, n: out.length, rows: out };
           await putSnap(snap); const msg = await afterImport(snap); toast(`Saved ${out.length} rows on this device. ${msg}`); close(); after && after();
         }; };
@@ -99,13 +101,18 @@ export async function compsFor(p, n = 5) { if (!p.lat) return []; const S2 = awa
     const mi = Math.hypot((lat - p.lat) * 69, (lon - p.lon) * 51.5); if (mi > 15) continue; out.push({ r, mi, psf: r.salePrice && r.sf ? r.salePrice / r.sf : 0 }); }
   return out.sort((a, b) => (a.mi + (sf && a.r.sf ? Math.abs(Math.log(a.r.sf / sf)) * 3 : 0)) - (b.mi + (sf && b.r.sf ? Math.abs(Math.log(b.r.sf / sf)) * 3 : 0))).slice(0, n); }
 
+// ---------- 2.2 lease radar ----------
+export function leaseRadar(S2) { const [cur] = lastTwo(S2, 'tenant'); if (!cur) return []; const [lst] = lastTwo(S2, 'listing'), spaces = lst ? lst.rows.filter(isLease) : [], rent = +cfg().rent || 8, t = today();
+  return cur.rows.filter(r => r.sf >= 10000 && r.leaseExp).map(r => { const d = daysBetween(t, r.leaseExp); if (d < -60 || d > 540) return null; const th = takeHome(r.sf * (r.rent || rent) * 5 * cfg().lease / 100);
+    return { r, d, th, sp: spaces.filter(s => (s.vacant || s.sf) >= r.sf * .7 && (s.vacant || s.sf) <= r.sf * 1.3).slice(0, 3) }; }).filter(Boolean).sort((a, b) => b.th - a.th); }
 // ---------- Today section ----------
 const row = (r, extra, p) => `<div class="pcall"><div class="pc-top"><div class="pc-who">${p ? `<a href="#/property/${esc(p.id)}"><b>${esc(r.address)}</b></a>` : `<b>${esc(r.address || r.name || '')}</b>`}<span class="xs muted">${esc(r.city || '')}${r.owner ? ' · ' + esc(r.owner) : p ? ' · ' + esc(nc(S.owners.get(p.ownerId)?.name || val(p, 'taxpayer') || '')) : ''}</span></div>${p ? `<button class="bact primary pc-call" data-call="${esc(p.id)}">Call</button>` : ''}</div><div class="pc-why">${extra}</div></div>`;
 const sect = (t, n, note, body) => n ? `<details class="feedmore" ${n <= 3 ? 'open' : ''}><summary><b>${t}</b> <span class="cnt">${n}</span></summary>${note ? `<div class="xs muted" style="margin:4px 0 6px">${note}</div>` : ''}${body}</details>` : '';
 export async function todayHTML() {
   const S2 = await allSnaps(); if (!S2.length) return `<div class="xs muted">No CoStar / LoopNet / Crexi files imported yet. Import one to unlock expired, stale and vacant-listing calls.</div>`;
-  const ex = expired(S2), st = staleList(S2), ch = changes(S2), va = vacant9(S2), lo = loanFlags(S2), last = S2[S2.length - 1];
+  const lr = leaseRadar(S2), ex = expired(S2), st = staleList(S2), ch = changes(S2), va = vacant9(S2), lo = loanFlags(S2), last = S2[S2.length - 1];
   return `<div class="xs muted" style="margin-bottom:6px">${S2.length} private import${S2.length > 1 ? 's' : ''} on this device · latest ${esc(last.fname)} (${esc(last.date)})</div>
+   ${sect('Lease radar', lr.length, `Tenants 10,000+ SF with leases ending in -60 to 540 days, ranked by your est. take-home (SF × rent × 5 yrs × lease % × split; rent $${+cfg().rent || 8}/SF if not in file).`, lr.slice(0, 40).map(x => row({ address: x.r.tenant || x.r.address, city: (x.r.address ? x.r.address + ', ' : '') + (x.r.city || '') }, `Lease ends ${esc(x.r.leaseExp)} (${x.d >= 0 ? x.d + ' days' : 'ended ' + -x.d + ' days ago'}) · ${fmt(x.r.sf)} SF · ≈ ${kmoney(x.th)} to you (est.)${x.r.phone ? ` · <a href="tel:${esc(String(x.r.phone).replace(/[^\d+]/g, ''))}">Call</a>` : ''}<details class="pc-sc"><summary>Script</summary><p>${esc(`Your lease is up ${new Date(x.r.leaseExp + 'T12:00').toLocaleDateString([], { month: 'long', year: 'numeric' })}. I'll get you options and leverage with your landlord before it's too late to move.`)}</p></details>${x.sp.length ? `<div class="xs">For-lease spaces that fit: ${x.sp.map(s => esc(s.address + (s.city ? ', ' + s.city : '') + ' ' + fmt(s.vacant || s.sf) + ' SF')).join('; ')}</div>` : ''}`, null)).join(''))}
    ${sect('What changed this week', ch.length, 'Latest listing export vs. the previous one.', ch.map(([, r, t]) => row(r, esc(t), propFor(r))).join(''))}
    ${sect('Listing expired', ex.length, 'In your previous export but gone now, with no recorded sale. Rule: never solicit an owner while an exclusive listing is active; call only after it has ended.', ex.map(x => row(x.r, `Was asking ${x.r.ask ? kmoney(x.r.ask) : x.r.rent ? '$' + x.r.rent + '/SF' : 'n/a'} · about ${fmt(x.dom)} days on market · gone by ${esc(x.gone)}`, x.p)).join(''))}
    ${sect('Stale listings', st.length, 'On market 180+ days or price cut. Follow-up set at expected listing end (estimate). Do not solicit while listed.', st.map(x => row(x.r, `${fmt(x.d)} days on market${x.cut ? ` · price cut ${kmoney(x.cut)}` : ''} · listing may end ~${esc(x.end)} (estimate: ${esc(x.basis)})`, propFor(x.r))).join(''))}

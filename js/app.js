@@ -70,6 +70,8 @@ function bindSearch() {
 async function route() {
   const [r, id] = (location.hash.replace(/^#\/?/, '') || 'today').split('/');
   const sec = SECTION[r] || (r ? 'more' : 'today'); $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === sec));
+  for (const k of ['__omiMap', '__omiMini']) if (window[k]) { try { window[k].remove(); } catch (e) {} window[k] = null; }   // release Leaflet maps between screens (memory)
+  document.querySelectorAll('.modal').forEach(m => m.remove());
   X.cmpTray();
   const el = $('#view'); el.scrollTop = 0; window.scrollTo(0, 0); backupBanner();
   const fn = { deals: (el) => import('./money.js').then(M => M.dealsView(el)), referrals: (el) => import('./batch3.js').then(M => M.referralsView(el)), big: (el) => import('./bigdeals.js').then(M => M.bigView(el)), stack: (el) => import('./pro.js').then(M => M.stackView(el)), occupants: (el) => import('./adv.js').then(M => M.occView(el)), slb: (el) => import('./adv.js').then(M => M.slbView(el)), today: (el, id) => import('./plan.js').then(M => M.planView(el, id)), command: V.command, offmarket: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
