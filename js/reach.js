@@ -12,7 +12,7 @@ const ENT = /\b(LLC|L L C|INC|CORP|CORPORATION|LP|LLP|LTD|COMPANY|CO|HOLDINGS|PR
 export const SOS = 'https://apps.ilsos.gov/businessentitysearch/';
 // ---- 4.1 phones from his CoStar / MLS imports (this device only) ----
 let PH = null;
-export async function loadPhones() { if (PH) return PH; PH = new Map(); try { const { allSnaps } = await import('./imports.js'); for (const s of await allSnaps()) for (const r of s.rows || []) if (r.phone && r.address) PH.set(na(r.address), { t: r.phone, n: r.name || r.owner || '', src: s.kind === 'mls' ? 'MLS' : 'CoStar' }); } catch (e) {} return PH; }
+export async function loadPhones() { if (PH) return PH; PH = new Map(); try { const { allSnaps } = await import('./costar.js'); for (const s of await allSnaps()) for (const r of s.rows || []) if (r.phone && r.address) PH.set(na(r.address), { t: r.phone, n: r.name || r.owner || '', src: s.kind === 'mls' ? 'MLS' : 'CoStar' }); } catch (e) {} return PH; }
 export const resetPhones = () => { PH = null; };
 const first = n => { const s = nc(String(n || '')).replace(/,.*$/, '').trim(); if (!s || ENT.test(s)) return ''; return s.split(/\s+/)[0]; };
 const findLinks = (name, city) => { const n = nc(name || ''), g = `https://www.google.com/search?q=${encodeURIComponent(`"${n}" ${nc(city || '')} phone`)}`;
