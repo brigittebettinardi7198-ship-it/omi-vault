@@ -38,11 +38,11 @@ function build() {
     if (!hits.length) continue;
     L = Math.min(.9, L + scoreOf(p).score / 400);
     // fee estimate: sale commission on estimated value (Tools > settings), or 5-yr lease fee at est. rent if larger
-    const leaseFee = sf.sf * setting('rentPsf', 8) * 5 * setting('leaseComm', 4) / 100;
+    const leaseFee = (d.sfOut ? d.sf : sf.sf) * setting('rentPsf', 8) * 5 * setting('leaseComm', 4) / 100;
     const fee = Math.max(d.commission || 0, leaseFee);
     rows.push({ p, sf, d, hits, L, fee, ev: fee * L, kind: fee === leaseFee ? `5-yr lease at $${setting('rentPsf', 8)}/SF, ${setting('leaseComm', 4)}%` : `sale, ${d.kind}, ${setting('commRate', 3)}%` });
   }
-  rows.sort((a, b) => b.ev - a.ev);
+  rows.sort((a, b) => (a.d.check - b.d.check) || b.ev - a.ev);   // implausible sizes sink to the bottom
   CACHE = { v: S.version, rows }; return rows;
 }
 let TAB = 'all', SHOWN = 50;
@@ -65,7 +65,7 @@ function card(r) {
   const ph = callablePhone(o), A = Object.fromEntries(propertyLinks({ address: val(p, 'address'), city: val(p, 'city'), zip: val(p, 'zip'), county: val(p, 'county'), pin: p.pin, lat: p.lat, lon: p.lon, taxpayer: val(p, 'taxpayer') }, o).filter(x => x[1]));
   const s0 = r.hits[0][0], first = /\b(LLC|L\.L\.C|INC|CO|CORP|CORPORATION|TRUST|LP|LTD|BANK|PARTNERS|COMPANY|HOLDINGS|PROPERTIES|ACCTG|TR|FUND|REIT)\b/i.test(name) ? 'there' : String(name).split(/[ ,]/)[0];
   return `<div class="card bdcard" style="padding:14px;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;gap:8px"><a href="#/property/${p.id}"><b>${esc(addr)}</b></a><b class="pos">${kmoney(r.fee)}</b></div>
+    <div style="display:flex;justify-content:space-between;gap:8px"><a href="#/property/${p.id}"><b>${esc(addr)}</b></a><b class="pos">${r.d.check ? '<span class="tag" style="background:#fef3c7;color:#92400e">check size</span> ' : ''}${kmoney(r.fee)}</b></div>
     <div class="xs muted">${esc(city)} · ${fmt(r.sf.sf)} SF${r.sf.est ? ' (est.)' : ''} · est. fee (${esc(r.kind)}) · likelihood ${Math.round(r.L * 100)}% (est.)</div>
     <div class="xs" style="margin-top:4px">Owner: ${p.ownerId ? `<a href="#/owner/${p.ownerId}">${esc(nc(name))}</a>` : esc(nc(name))}</div>
     <ul class="xs" style="margin:6px 0 6px 18px;padding:0">${r.hits.flatMap(([s, list]) => list.map(([t, u]) => `<li>${esc(t)}${u ? ` · <a href="${u}" target="_blank" rel="noopener">source</a>` : ''}</li>`)).join('')}

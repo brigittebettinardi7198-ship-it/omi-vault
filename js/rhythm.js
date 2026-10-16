@@ -3,11 +3,11 @@ import { $, esc, kmoney, today, addDays, toast } from './util.js';
 import { S, val, setting } from './store.js';
 import { deal } from './scoring.js';
 import { nc } from './extras.js';
-import { takeHomeValue, takeHome, PROB, gross } from './money.js';
+import { takeHomeValue, takeHome, PROB, gross, chip } from './money.js';
 import { callBtn, resiCallBtn } from './reach.js';
 // 7.1: 3 most valuable calls from today's list (commercial rows + residential cards), by est. take-home
 export function briefHTML(rows, resi, reason) { if (new Date().getHours() >= 12) return '';
-  const L = [...rows.map(c => ({ v: takeHomeValue(deal(c.p).value || 0), h: `<div class="pc-top"><div class="pc-who"><b>${esc(nc(c.o.name))}</b><span class="xs">${esc(nc(val(c.p, 'address') || ''))} · ${esc(reason(c))}</span></div>${callBtn(c.o, c.p)}</div>` })),
+  const L = [...rows.map(c => ({ v: deal(c.p).check ? 0 : takeHomeValue(deal(c.p).value || 0), raw: deal(c.p).value, h: `<div class="pc-top"><div class="pc-who"><b>${esc(nc(c.o.name))}</b><span class="xs">${esc(nc(val(c.p, 'address') || ''))} · ${esc(reason(c))}</span></div>${callBtn(c.o, c.p)}</div>` })),
     ...resi.map(x => ({ v: x.th || 0, h: `<div class="pc-top"><div class="pc-who"><b>${esc(nc(x.p.own || 'Owner'))}</b><span class="xs">${esc(nc(x.p.a))} · ${esc(x.R.slice(0, 2).join(' · '))}</span></div>${resiCallBtn(x)}</div>` }))]
     .sort((a, b) => b.v - a.v).slice(0, 3); if (!L.length) return '';
   return `<section class="card" id="brief" style="background:#eff6ff;border-color:#2563eb;padding:12px;margin:8px 0"><b>Morning brief: your 3 most valuable calls</b><div class="xs muted">Shown until noon. Ranked by est. take-home.</div>${L.map(x => `<div class="pcall" style="margin:6px 0">${x.h}${x.v ? `<span class="tag" style="background:#dcfce7;color:#166534">≈ ${kmoney(x.v)} to you (est.)</span>` : ''}</div>`).join('')}</section>`; }

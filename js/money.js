@@ -21,7 +21,8 @@ export function capPaid(excludeId) { const c = cfg(); let paid = 0; for (const d
 export function takeHome(g, paid = capPaid()) { const c = cfg(), co = Math.min(g * (1 - c.split / 100), Math.max(0, c.cap - paid)); return g - co; }
 export const takeHomeValue = (value, kind = 'sale') => takeHome(value * (kind === 'lease' ? cfg().lease : kind === 'resi' ? cfg().resi : cfg().sale) / 100);
 export const expected = (value, prob) => takeHomeValue(value) * prob;
-export const chip = (value, kind) => value ? `<span class="tag" style="background:#dcfce7;color:#166534">≈ ${kmoney(takeHomeValue(value, kind))} to you (est.)</span>` : '';
+export const VCHK = 30000000;
+export const chip = (value, kind) => value > VCHK ? `<span class="tag" style="background:#fef3c7;color:#92400e" title="Estimate over $30M: likely a size or multi-parcel data issue, or a co-brokered institutional deal">Large: check size</span>` : value ? `<span class="tag" style="background:#dcfce7;color:#166534">≈ ${kmoney(takeHomeValue(value, kind))} to you (est.)</span>` : '';
 export const dnc = o => !!(o && (o.dnc || o.stage === 'Do not contact'));
 // ---------- territory (7.3) ----------
 export const terr = () => setting('territory', { types: [], towns: '', zips: '' }) || {};
@@ -37,7 +38,7 @@ export function bigDealLeads() {
   for (const l of S.leases.values()) if (l.propertyId && l.expiration && +l.sf >= 50000) { const d = daysBetween(now, l.expiration); if (d >= 0 && d <= 365) lease.set(l.propertyId, Math.min(d, lease.get(l.propertyId) ?? 999)); }
   const x = x1031Buyers().filter(e => e.d180 > 0 && e.total >= 1e6);
   for (const p of S.props) {
-    const o = S.owners.get(p.ownerId); if (dnc(o) || (o && o.inst) || p.ot === 'institutional' || !inTerritory(p)) continue; const v = deal(p).value || 0; if (v < minV) continue;
+    const o = S.owners.get(p.ownerId); if (dnc(o) || (o && o.inst) || p.ot === 'institutional' || !inTerritory(p)) continue; const dq = deal(p), v = dq.value || 0; if (v < minV || dq.check) continue;   // implausible size: not a 90-day lead
     const th = takeHomeValue(v); if (th < c.big) continue;
     const T = [];
     if (lease.has(p.id)) T.push({ t: `Lease ends in ${lease.get(p.id)} days`, d: lease.get(p.id) });

@@ -266,7 +266,9 @@ export function possibleBuyers(limit = 20) {
 
 // ---- Deal size (big deals first). Values are labeled by where they come from. ----
 export function dealInfo(p) {
-  const sf = +val(p, 'bldgSf') || 0, lsf = +val(p, 'landSf') || 0, acres = lsf / 43560;
+  const sf0 = +val(p, 'bldgSf') || 0, lsf = +val(p, 'landSf') || 0, acres = lsf / 43560, fp = +p.est_bldg_sf || 0;
+  // Sanity: Cook often repeats a whole complex's SF on one PIN. If assessor SF is far above the measured roof footprint, value on 2x footprint and flag it.
+  const sfOut = !!(fp && sf0 > 50000 && sf0 > fp * 2.5), sf = sfOut ? Math.round(fp * 2) : sf0;
   // Asking price wins; a broker-entered value is used as-is; otherwise take the higher of the assessor value and a $/SF estimate
   // (assessor values often lag industrial market pricing). Always labeled as an estimate.
   let value = +val(p, 'askingPrice'), kind = 'asking price';
@@ -275,12 +277,13 @@ export function dealInfo(p) {
   if (!value) {
     const av = +val(p, 'marketValue') || 0, est = sf ? sf * setting('psfBldg', 100) : lsf * setting('psfLand', 8);
     if (av >= est && av) { value = av; kind = p.mvest ? 'est. from assessed value' : 'assessor market value'; }
-    else if (est) { value = est; kind = sf ? `est. at $${setting('psfBldg', 100)}/SF bldg` : `est. at $${setting('psfLand', 8)}/SF land`; }
+    else if (est) { value = av ? Math.min(est, av * 1.5) : est; kind = value < est ? 'est. ($/SF, held to 1.5x assessor value)' : sf ? `est. at $${setting('psfBldg', 100)}/SF bldg` : `est. at $${setting('psfLand', 8)}/SF land`; }
   }
+  const check = sfOut || value > setting('valCheck', 30000000);   // implausible for a quick solo deal: show "check size" instead of a dollar figure
   const commission = value ? value * setting('commRate', 3) / 100 : 0;
   const big = sf >= setting('bigSf', 50000) || acres >= setting('bigAcres', 5) || value >= setting('bigValue', 5000000);
   const size = Math.min(1, Math.max(sf / 200000, acres / 20, (value || 0) / 20000000));
-  return { sf, acres, value, kind, commission, big, size };
+  return { sf, acres, value, kind, commission, big, size, check, sfOut };
 }
 let dcache = { v: -1, m: new Map() };
 // Building SF for matching/filtering: official assessor SF when present, else the roof-footprint estimate (est_bldg_sf, source: footprint)
