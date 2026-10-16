@@ -110,3 +110,4 @@ export function idx() {
 }
 export async function addActivity(a) { a.id = a.id || uid('a'); a.ts = a.ts || Date.now(); return save('activities', a); }
 export async function addFollowup(f) { f.id = f.id || uid('f'); f.created = Date.now(); f.done = false; return save('followups', f); }
+export const firm = () => setting('brokerage', 'Real Brokerage') || 'Real Brokerage';

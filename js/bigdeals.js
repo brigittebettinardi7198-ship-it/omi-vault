@@ -1,5 +1,5 @@
 // Big Deals: ranks 100k+ SF / $10M+ properties by estimated fee x rule-based likelihood. Public data only; every number marked as an estimate.
-import { S, val, setting } from './store.js';
+import { S, val, setting, firm } from './store.js';
 import { $, $$, esc, kmoney, fmt, toast } from './util.js';
 import { deal, sfOf, scoreOf } from './scoring.js';
 import { propertyLinks } from './markets.js';
@@ -17,13 +17,13 @@ const SIG = [
     if (p.dsale) o.push(['Distressed sale on record (PTAX-203): ' + p.dsale, SRC.ptax]);
     if (p.sbamat) { const m = Math.round((new Date(p.sbamat + '-01') - Date.now()) / 2.63e9); if (m >= -6 && m <= 24) o.push([`SBA 504 loan matures ~${p.sbamat} (ESTIMATE: approval + term)`, SRC.sba]); }
     return o.length ? o : null; },
-    (n, a) => `Hi ${n}, This is [your name] with Transwestern. I cover industrial around ${a}. Public records show some changes at your building, and owners in that spot often want options: a sale, a sale-leaseback or bringing in a tenant. Would a quick, confidential value range be useful?`],
+    (n, a) => `Hi ${n}, This is [your name] with ${firm()}. I cover industrial around ${a}. Public records show some changes at your building, and owners in that spot often want options: a sale, a sale-leaseback or bringing in a tenant. Would a quick, confidential value range be useful?`],
   ['hold', 'Long-hold owners', .22, p => { const y = +String(val(p, 'lastSaleDate') || '').slice(0, 4); return y && YR - y >= 15 && p.ot !== 'institutional' ? [[`Owned ${YR - y}+ years (last recorded sale ${y}); large equity, possible retirement/estate planning`, null]] : null; },
-    (n, a) => `Hi ${n}, this is [your name] with Transwestern. You've owned ${a} a long time, and big industrial buildings have re-priced a lot since you bought. I'm not asking you to sell; I can send you a one-page value range so you know what it's worth today. Okay to email it?`],
+    (n, a) => `Hi ${n}, this is [your name] with ${firm()}. You've owned ${a} a long time, and big industrial buildings have re-priced a lot since you bought. I'm not asking you to sell; I can send you a one-page value range so you know what it's worth today. Okay to email it?`],
   ['inv', 'Recent investor buys', .3, p => { const d = String(val(p, 'lastSaleDate') || ''), y = +d.slice(0, 4); return y >= YR - 2 && /institutional|company/.test(p.ot || '') ? [[`Bought ${d} by ${p.ot === 'institutional' ? 'an institutional' : 'a company/LLC'} owner; new owners often need leasing or a value-add plan`, null]] : null; },
-    (n, a) => `Hi ${n}, [your name] with Transwestern. Congrats on picking up ${a}. I'm tracking tenants in the market looking for that size right now. Do you have a leasing plan in place, or would it help to see who's active?`],
+    (n, a) => `Hi ${n}, [your name] with ${firm()}. Congrats on picking up ${a}. I'm tracking tenants in the market looking for that size right now. Do you have a leasing plan in place, or would it help to see who's active?`],
   ['slb', 'Sale-leasebacks', .3, p => p.slb ? [[`Sale-leaseback recorded on PTAX-203 (${p.slb}); the lease term clock is running`, SRC.ptax]] : null,
-    (n, a) => `Hi ${n}, [your name] with Transwestern. Records show a sale-leaseback at ${a}. I'd like to check where the lease stands; owners and tenants usually plan 18 to 24 months ahead. Is there a good time this week?`],
+    (n, a) => `Hi ${n}, [your name] with ${firm()}. Records show a sale-leaseback at ${a}. I'd like to check where the lease stands; owners and tenants usually plan 18 to 24 months ahead. Is there a good time this week?`],
 ];
 const MIN_SF = 100000, MIN_V = 10e6;
 let CACHE = { v: -1, rows: [] };
