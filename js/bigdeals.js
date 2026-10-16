@@ -32,7 +32,7 @@ function build() {
   const rows = [];
   for (const p of S.props) {
     const sf = sfOf(p), d = deal(p);
-    if (sf.sf < MIN_SF && (d.value || 0) < MIN_V) continue;
+    if (sf.sf < MIN_SF && (d.value || 0) < MIN_V) continue; const ow = S.owners.get(p.ownerId); if (ow && (ow.dnc || ow.stage === 'Do not contact')) continue;
     const hits = []; let L = 0;
     for (const s of SIG) { const r = s[3](p); if (r) { hits.push([s, r]); L += s[2]; } }
     if (!hits.length) continue;

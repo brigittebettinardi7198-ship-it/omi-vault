@@ -25,6 +25,7 @@ const go = href => { const a = document.createElement('a'); a.href = href; a.cla
 export function openCall(key) {
   let p = null, o = null;
   if (key.startsWith('o:')) { o = S.owners.get(key.slice(2)); p = o ? ownerProps(o.id)[0] : null; } else { p = S.prop.get(key); o = p && p.ownerId ? S.owners.get(p.ownerId) : null; }
+  if (o && (o.dnc || o.stage === 'Do not contact')) { toast('Do not call: this owner is marked DNC.'); return; }
   const { phones, emails } = contactOptions(p, o), name = nc(o ? o.name : p ? val(p, 'taxpayer') || '' : '');
   const tpts = (() => { const t = p ? [appealPoint(p), leaseFlag(p) && leaseTxt(leaseFlag(p))].filter(Boolean) : []; return t.length ? `<div class="cp-l">Talking points</div><ul class="tpoints">${t.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''; })();
   if (phones.length === 1 && !emails.length) { go('tel:' + digits(phones[0].t)); return; }

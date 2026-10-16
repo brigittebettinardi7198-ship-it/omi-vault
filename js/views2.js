@@ -215,7 +215,7 @@ export async function more(el) {
     ['People', [['owners', 'Owners', 'Owner groups and contacts'], ['requirements', 'Buyers & requirements', 'What your clients need, matched to sellers'], ['companies', 'Tenants', 'Companies and expansion signals']]],
     ['Market', [['brief', 'Weekly market brief', 'One printable page: indicators, sales, permits, headlines'], ['comps', 'Comps & listings', 'Sale and lease comps, territory stats'], ['lists', 'Saved lists', 'Your own property lists'], ['compare', 'Compare properties', 'Up to 10 side by side']]],
     ['You', [['stats', 'Stats', 'Pipeline numbers and calling activity'], ['tools', 'Tools & data', 'Settings, score weights, import, export, backup']]]];
-  el.innerHTML = `<div class="page narrow"><h1>More</h1>${G.map(([g, items]) => `<div class="lbl">${g}</div><div class="mlist">${items.map(([k, l, d]) => `<a href="#/${k}"><b>${l}</b><span>${d}</span><i>›</i></a>`).join('')}</div>`).join('')}
+  el.innerHTML = `<div class="page narrow"><h1>Tools</h1>${G.map(([g, items]) => `<div class="lbl">${g}</div><div class="mlist">${items.map(([k, l, d]) => `<a href="#/${k}"><b>${l}</b><span>${d}</span><i>›</i></a>`).join('')}</div>`).join('')}
     <div class="lbl">Display & about</div><div class="mlist"><button id="thm"><b>Switch dark / light</b><span>Light is the default; dark is optional</span><i>›</i></button>
       <div class="about"><b>About this data</b><span>${S.meta ? `Public data last updated ${esc(S.meta.generated)} CT.` : ''} All your notes and contacts stay on this device. Public-record data must be verified before use.</span><span>${esc(DISCLAIMER)}</span></div></div></div>`;
   $('#thm', el).onclick = () => window.__omiTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');

@@ -7,7 +7,8 @@ import { favBtn } from './favs.js';
 import { vacancyOf } from './sheets.js';
 import { likelyBuyers, qualify } from './buyers.js';
 import { x1031Buyers, nc } from './extras.js';
-import { pitchLine, autopilot, draftBtns, scorecardHTML, buyerAlertsHTML, estateListHTML, driveRoute, driveHTML } from './edge.js';
+import { pathHTML, targetsHTML, guardHTML, overdueHTML, scorecardHTML, bigDealLeads, bigCardHTML, bindMoney, dnc, inTerritory } from './money.js';
+import { pitchLine, autopilot, draftBtns, buyerAlertsHTML, estateListHTML, driveRoute, driveHTML } from './edge.js';
 
 const GOV = /\b(CITY OF|VILLAGE OF|TOWN OF|COUNTY|STATE OF|UNITED STATES|USA|DISTRICT|AUTHORITY|SCHOOL|UNIVERSITY|COLLEGE|PARK DIST|FOREST PRESERVE|RAILROAD|RAILWAY|METRA|CTA|COMMONWEALTH EDISON|COMED|NICOR|HOUSING|CHURCH|DIOCESE|ARCHDIOCESE)\b/;
 export const OUTCOMES = [['na', 'No answer'], ['vm', 'Left VM'], ['talked', 'Talked'], ['int', 'Interested'], ['no', 'Pass / not interested'], ['mtg', 'Meeting set'], ['prop', 'Proposal sent']];
@@ -33,8 +34,8 @@ function candidates() {
   if (candCache && candCache.v === S.version) return candCache.list;
   const list = [];
   for (const o of S.owners.values()) {
-    if (o.inst || o.stage === 'Do not contact' || GOV.test(String(o.name || '').toUpperCase())) continue;
-    const props = ownerProps(o.id); if (!props.length || props.length > 12) continue;   // 12+ parcels = large company portfolio
+    if (o.inst || dnc(o) || GOV.test(String(o.name || '').toUpperCase())) continue;
+    const props = ownerProps(o.id).filter(inTerritory); if (!props.length || props.length > 12) continue;   // 12+ parcels = large company portfolio
     let best = null;
     for (const p of props) { const sig = propSignals(p); if (!sig.length) continue; const s = sig.reduce((a, x) => a + x[0], 0); if (!best || s > best.s) best = { p, sig, s }; }
     if (!best || best.s < 20) continue;
@@ -139,21 +140,24 @@ export async function planView(el, sub) {
     <details class="pc-sc"><summary>Script</summary><p>${esc(script(c))}</p></details>${outBtns(c.o.id, c.p.id)}${tagRow(c.o.id, c.p.id)}</div>`;
   const dueCard = f => { const o = S.owners.get(f.ownerId), p = f.propertyId && S.prop.get(f.propertyId); return `<div class="pcall due"><div class="pc-top"><span class="pc-n">!</span><div class="pc-who">${o ? `<a href="#/owner/${esc(o.id)}"><b>${esc(nc(o.name))}</b></a>` : '<b>Follow-up</b>'}${p ? `<a class="xs" href="#/property/${esc(p.id)}">${esc(nc(val(p, 'address') || ''))}</a>` : ''}</div>${o ? `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">Call</button>` : ''}</div><div class="pc-why">${esc(f.note || 'Follow-up')} · due ${esc(f.due)}${f.due < t ? ' (overdue)' : ''}</div>${draftBtns(f)}${o ? outBtns(o.id, f.propertyId) + tagRow(o.id, f.propertyId) : ''}</div>`; };
   const fd = fuDays();
-  el.innerHTML = `<div class="page plan"><div class="hello"><h1>Today</h1><p class="explain">Your 10 calls for today, picked for the fastest possible deals: owners with strong reasons to sell, ideally with a buyer already waiting. Tap an outcome after each call.</p></div>
-    ${scorecardHTML()}${buyerAlertsHTML()}${estateListHTML()}
-    <button class="btn primary" id="drive" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">🚗 Plan a drive day</button><div id="driveout"></div>
+  const big90 = !!setting('big90', false), bigL = big90 ? bigDealLeads().slice(0, 10) : [];
+  el.innerHTML = `<div class="page plan"><div class="hello"><h1>Today</h1><p class="explain">Your path to the goal, call-backs, then your 10 calls. Tap an outcome after each call.</p></div>
+    ${overdueHTML()}${pathHTML()}${targetsHTML()}${guardHTML()}
+    ${due.length ? `<h2 class="plan-h">Call back today <span class="cnt">${due.length}</span></h2>${due.slice(0, 15).map(dueCard).join('')}` : ''}
+    <div class="ch" style="margin-top:14px"><h2 class="plan-h" style="margin:0">${big90 ? '90-Day Big Deal calls' : 'Your 10 calls'} · ${new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</h2><label class="fchip" style="min-height:44px"><input type="checkbox" id="big90" ${big90 ? 'checked' : ''}> 90-Day Big Deal</label></div>
+    ${big90 ? (bigL.length ? bigL.map(bigCardHTML).join('') : '<div class="muted">No leads meet the 90-Day rules (take-home and a deadline trigger). Lower the minimum in Deals settings or widen your territory.</div>') : rows.length ? rows.map(card).join('') : '<div class="muted">No owners with strong sell signals in your territory right now.</div>'}
+    ${scorecardHTML()}
+    <h2 class="plan-h">Fastest money</h2>${buyerAlertsHTML()}${estateListHTML()}<div class="xs muted"><a href="#/big">Big Deals ›</a></div>
+    <details class="card" style="padding:10px;margin-top:12px"><summary><b>More for today</b> <span class="xs muted">drive day, record changes, your files, more lead types</span></summary>
+    <button class="btn primary" id="drive" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">Plan a drive day</button><div id="driveout"></div>
     ${feedHTML()}
-    ${due.length ? `<h2 class="plan-h">Due today <span class="cnt">${due.length}</span></h2>${due.slice(0, 15).map(dueCard).join('')}` : ''}
-    <h2 class="plan-h">Call plan · ${new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</h2>
-    ${rows.length ? rows.map(card).join('') : '<div class="muted">No owners with strong sell signals right now. Check Off-Market for more.</div>'}
     <h2 class="plan-h">Your CoStar / LoopNet / Crexi files <span class="xs muted">(private, this device only)</span></h2><button class="btn" id="impbtn" style="width:100%;margin-bottom:8px">Import CoStar / LoopNet / Crexi file</button><div id="impx"><div class="xs muted">Loading…</div></div>
     <div id="b3x"></div>
-    ${pipelineHTML()}
     <details class="card advset"><summary>Advanced: call script and follow-up timing</summary>
       <label class="full">Script (use {address}, {city}, {hook}, {owner})<textarea id="scr" rows="3">${esc(setting('script', SCRIPT_DEF) || SCRIPT_DEF)}</textarea></label>
       <div class="dl-f">${[['na', 'No answer'], ['vm', 'Left VM'], ['talked', 'Talked'], ['int', 'Interested']].map(([k, l]) => `<label>${l}: days<input data-fud="${k}" type="number" inputmode="numeric" value="${fd[k]}"></label>`).join('')}</div>
       <div class="xs muted">Ranking: tax delinquency, SBA loan coming due (estimate), possible vacancy, WARN notices, 15+ year ownership and out-of-state owners, plus a bonus when your buyer, a grade A/B public buyer or a 1031 buyer fits. Large companies (12+ parcels or institutional) and government owners are left out. Nobody repeats within 14 days.</div></details>
-    <div class="xs muted" style="margin-top:8px"><a href="#/offmarket">All off-market signals ›</a> · <a href="#/leases">Lease expirations ›</a> · <a href="#/favs">Saved properties ›</a></div></div>`;
+    </details></div>`;
   const re = () => planView(el);
   $$('[data-out]', el).forEach(b => b.onclick = async () => { b.closest('.outs').querySelectorAll('button').forEach(x => x.disabled = true); await record(b.dataset.oid, b.dataset.pid, b.dataset.out); re(); });
   import('./imports.js').then(async M => { const x = $('#impx', el); if (!x) return; x.innerHTML = await M.todayHTML(); M.bindToday(x, re); $('#impbtn', el).onclick = () => M.importModal(re); if (sub === 'import') M.importModal(re); });
@@ -162,9 +166,5 @@ export async function planView(el, sub) {
   $('#drive').onclick = () => { const r = driveRoute(candidates().slice(0, 80)); $('#driveout').innerHTML = `<section class="card" style="padding:12px;margin-bottom:10px"><h2 style="margin:0">Drive day</h2>${driveHTML(r)}</section>`; };
   $('#scr').onchange = e => setSetting('script', e.target.value || SCRIPT_DEF);
   $$('[data-fud]', el).forEach(i => i.onchange = () => { const v = { ...(setting('fuDays', {}) || {}) }; v[i.dataset.fud] = +i.value || FU_DEF[i.dataset.fud]; setSetting('fuDays', v); });
-  $('#goal').onchange = e => { setSetting('goal', +e.target.value || 100000); re(); };
-  $('#adddeal').onclick = async () => { const D = setting('deals', []) || []; D.unshift({ id: uid('d'), name: 'New deal', stage: 'Lead', value: '', comm: 3, split: 50, created: today() }); await setSetting('deals', D); re(); };
-  $$('.deal', el).forEach(row => { const id = row.dataset.did, upd = async (k, v) => { const D = (setting('deals', []) || []).map(d => d.id === id ? { ...d, [k]: v, ...(k === 'stage' && v === 'Closed' && !d.close ? { close: today() } : {}) } : d); await setSetting('deals', D); };
-    $$('[data-df]', row).forEach(i => i.onchange = async () => { await upd(i.dataset.df, i.type === 'number' ? (i.value === '' ? '' : +i.value) : i.value); re(); });
-    $('[data-ddel]', row).onclick = async () => { await setSetting('deals', (setting('deals', []) || []).filter(d => d.id !== id)); re(); }; });
+  bindMoney(el, re); $('#big90', el).onchange = async e => { await setSetting('big90', e.target.checked); re(); };
 }

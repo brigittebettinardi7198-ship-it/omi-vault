@@ -1,5 +1,5 @@
 import { nc } from './extras.js';
-// "Ask": rules-based smart search. Runs entirely on this device. No cloud AI and no API; nothing typed leaves the browser.
+// "Ask": rules-based smart search. Runs entirely on this device. No cloud service and no API; nothing typed leaves the browser.
 // Plain English -> criteria (editable chips) -> the existing matching + off-market scoring engine -> ranked properties / owners.
 import { $, $$, esc, fmt, kmoney, uid, toast, scorePill, toCSV, download, today, daysBetween } from './util.js';
 import { S, val, save, OPT } from './store.js';
@@ -234,7 +234,7 @@ let LAST = { q: '', c: null };
 export async function askView(el, q) {
   if (q != null && q !== LAST.q) LAST = { q, c: parseAsk(q) };
   const c = LAST.c;
-  el.innerHTML = `<div class="page wide"><div class="ph"><div><h1>Ask <span class="tag">smart search</span></h1><div class="muted">Type what you need in plain English. Rules and keyword patterns turn it into search criteria <b>on this device</b>. This is not cloud AI: nothing you type is sent anywhere. Check the chips to see how it was understood.</div></div></div>
+  el.innerHTML = `<div class="page wide"><div class="ph"><div><h1>Ask <span class="tag">smart search</span></h1><div class="muted">Type what you need in plain English. Rules and keyword patterns turn it into search criteria <b>on this device</b>. Nothing you type is sent anywhere. Check the chips to see how it was understood.</div></div></div>
     <form id="askf" class="askbox"><textarea id="askq" rows="2" placeholder="e.g. buyer wants 100-200k SF warehouse near O'Hare, 30' clear, 10+ docks, under $25M, owned 20+ yrs">${esc(LAST.q)}</textarea><button class="btn primary" type="submit">Search</button></form>
     ${c ? '' : `<section class="card"><div class="ch"><h2>Try one of these</h2></div><div class="askex">${EXAMPLES.map(x => `<button type="button" class="btn ghost sm" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div>
       <div class="xs muted">Understands: SF ranges (100-200k SF, 50k+ SF), acres, clear height, docks, drive-ins, budget ($25M, under $9/sf), years owned, built before/after, towns, counties and areas (O'Hare, I-55, I-80, I-88, I-90, I-94, Midway, Fox Valley, south/west suburbs), out-of-state / absentee / trust / estate owners, property type, buy / lease / invest / sellers, and signals (closings, tax delinquent, SBA loans, sale-leaseback, fresh changes, TIF, Opportunity Zone, hot = score 70+).</div></section>`}
@@ -303,5 +303,5 @@ function editChip(c, k, done) {
   });
 }
 // compact box for the Command Center
-export const askBoxHTML = () => `<form id="askmini" class="askbox mini"><input id="askmq" placeholder="Ask (smart search): e.g. sellers in Elk Grove with out-of-state owners" aria-label="Ask smart search"><button class="btn primary" type="submit">Ask</button></form><div class="xs muted askhint">Runs on this device with rules and keywords. No cloud AI. <a href="#/ask">Examples</a></div>`;
+export const askBoxHTML = () => `<form id="askmini" class="askbox mini"><input id="askmq" placeholder="Ask (smart search): e.g. sellers in Elk Grove with out-of-state owners" aria-label="Ask smart search"><button class="btn primary" type="submit">Ask</button></form><div class="xs muted askhint">Runs on this device with rules and keywords. <a href="#/ask">Examples</a></div>`;
 export function bindAskBox(root = document) { const f = $('#askmini', root); if (f) f.onsubmit = e => { e.preventDefault(); const v = $('#askmq', root).value.trim(); if (v) location.hash = '#/ask/' + encodeURIComponent(v); }; }
