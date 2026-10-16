@@ -1,5 +1,6 @@
 // Today = daily call plan (first screen). Ranked for QUICK closes from real public signals only; outcomes, follow-ups, pipeline
 // and the script are saved on this device (settings + followups store, so they ride along in backup).
+import { tdelWeight, tdelText, taxStatusUrl } from './util.js';
 import { $, $$, esc, fmt, kmoney, today, addDays, daysBetween, toast, uid } from './util.js';
 import { S, val, setting, setSetting, ownerProps, addFollowup, addActivity, save } from './store.js';
 import { deal, activeMatchMap, ownerDeal, sfOf } from './scoring.js';
@@ -22,7 +23,7 @@ const PROB = { Lead: .1, Pitched: .25, 'Touring / Listed': .5, 'Under contract':
 // ---------- signals (real public data only) ----------
 function propSignals(p) {
   const R = [], now = today();
-  if (p.tdel) R.push([30, `behind on property taxes (Cook County delinquent list ${p.tdel})`]);
+  if (p.tdel) R.push([tdelWeight(p.tdel, 30), tdelText(p.tdel)]);
   if (p.sba && p.sbamat) { const m = daysBetween(now, p.sbamat) / 30.4; if (m >= -6 && m <= 24) R.push([25, `SBA loan likely comes due around ${p.sbamat} (estimate)`]); }
   const v = vacancyOf(p); if (v && v.length) { const t = v.sort((a, b) => b.s - a.s)[0]; R.push([t.s === 2 ? 25 : 12, 'may be empty: ' + t.t]); }
   if (p.warn) R.push([20, 'WARN layoff / closing notice: ' + p.warn]);
@@ -56,7 +57,7 @@ export const moneyRank = (value, r) => takeHomeValue(+value || 0) * Math.max(.03
 // ---------- daily plan: 10 owners, no repeats within 14 days ----------
 export function dailyPlan() {
   const t = today(), cur = setting('plan', null);
-  const pick = cur && cur.d === t && cur.v === 3 ? cur.ids : null;
+  const pick = cur && cur.d === t && cur.v === 4 ? cur.ids : null;
   const all = candidates(), byId = new Map(all.map(c => [c.o.id, c]));
   let rows;
   if (pick) rows = pick.map(id => byId.get(id)).filter(Boolean);
@@ -66,7 +67,7 @@ export function dailyPlan() {
     const pool = all.filter(c => ok(c) && !(c.value > 30e6)).slice(0, 150).map(c => { const b = buyerBonus(c), r = c.s + (b ? b[0] : 0); return { ...c, b, r, ex: moneyRank(c.value, r) }; }).sort((a, b) => b.ex - a.ex).slice(0, 10);
     rows = pool; const h2 = { ...hist }; pool.forEach(c => h2[c.o.id] = t);
     for (const k of Object.keys(h2)) if (daysBetween(h2[k], t) > 30) delete h2[k];
-    setSetting('planHist', h2); setSetting('plan', { d: t, v: 3, ids: pool.map(c => c.o.id) });
+    setSetting('planHist', h2); setSetting('plan', { d: t, v: 4, ids: pool.map(c => c.o.id) });
   }
   return rows.map(c => c.b === undefined ? { ...c, b: buyerBonus(c) } : c);
 }
@@ -144,7 +145,7 @@ export async function planView(el, sub) {
   const rows = dailyPlan().slice(0, 10 - resi.length), due = dueList(), t = today();
   const more = (oid, pid, extra = '') => `<details class="pc-sc pc-more"><summary>More</summary>${extra}${outMore(oid, pid)}${tagRow(oid, pid)}${RC.notesBox(oid, pid)}${RC.portfolioBtn(oid)}<a class="xs" target="_blank" rel="noopener" href="${esc(RC.SOS)}">Who runs the LLC (IL Secretary of State)</a></details>`;
   const card = (c, i) => `<div class="pcall"><div class="pc-top"><span class="pc-n">${i + 1}</span><div class="pc-who"><a href="#/owner/${esc(c.o.id)}"><b>${esc(nc(c.o.name))}</b></a><a class="xs" href="#/property/${esc(c.p.id)}">${esc(nc(val(c.p, 'address') || ''))}, ${esc(nc(val(c.p, 'city') || ''))}</a></div>${RC.callBtn(c.o, c.p)}</div>${RC.memTop(c.o.id)}
-    <div class="pc-chip">${chip(c.value)}</div><div class="pc-why">${esc(reason(c))}</div>${rollup(c.o.id)}${lastOut(c.o.id)}
+    <div class="pc-chip">${chip(c.value)}</div><div class="pc-why">${esc(reason(c))}${c.p.tdel && c.p.co === 'Cook' ? ` <a class="xs" target="_blank" rel="noopener" href="${esc(taxStatusUrl(c.p))}">Check taxes now</a>` : ''}</div>${rollup(c.o.id)}${lastOut(c.o.id)}
     ${outBtns(c.o.id, c.p.id)}${more(c.o.id, c.p.id, `<p class="pc-script"><b>What to say:</b> ${esc(script(c))}</p>`)}</div>`;
   const dueCard = f => { const o = S.owners.get(f.ownerId), p = f.propertyId && S.prop.get(f.propertyId); return `<div class="pcall due"><div class="pc-top"><span class="pc-n">!</span><div class="pc-who">${o ? `<a href="#/owner/${esc(o.id)}"><b>${esc(nc(o.name))}</b></a>` : '<b>Follow-up</b>'}${p ? `<a class="xs" href="#/property/${esc(p.id)}">${esc(nc(val(p, 'address') || ''))}</a>` : ''}</div>${o ? `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">Call</button>` : ''}</div><div class="pc-why">${esc(f.note || 'Follow-up')} · due ${esc(f.due)}${f.due < t ? ' (overdue)' : ''}</div>${draftBtns(f)}${o ? outBtns(o.id, f.propertyId) + more(o.id, f.propertyId) : ''}</div>`; };
   const fd = fuDays();

@@ -5,6 +5,7 @@ import { deal, sfOf, scoreOf } from './scoring.js';
 import { propertyLinks } from './markets.js';
 import { callablePhone } from './contacts.js';
 import { nc } from './extras.js';
+import { tdelAge, tdelMonth } from './util.js';
 import { takeHome as th0 } from './money.js';
 
 const YR = new Date().getFullYear();
@@ -14,7 +15,7 @@ const SIG = [
   ['dist', 'Distress / loan', .45, p => {
     const o = [];
     if (p.warn) o.push(['IL WARN layoff/closing notice at this address: ' + p.warn, SRC.warn]);
-    if (p.tdel) o.push([`In Cook Clerk delinquent-tax file (${p.tdel})`, SRC.tdel]);
+    if (p.tdel) o.push([`On the Cook County delinquent-tax list as of ${tdelMonth(p.tdel)}${tdelAge(p.tdel) >= 6 ? ' (may be paid since, check first)' : ''}`, SRC.tdel]);
     if (p.dsale) o.push(['Distressed sale on record (PTAX-203): ' + p.dsale, SRC.ptax]);
     if (p.sbamat) { const m = Math.round((new Date(p.sbamat + '-01') - Date.now()) / 2.63e9); if (m >= -6 && m <= 24) o.push([`SBA 504 loan matures ~${p.sbamat} (ESTIMATE: approval + term)`, SRC.sba]); }
     return o.length ? o : null; },
@@ -37,6 +38,7 @@ function build() {
     const hits = []; let L = 0;
     for (const s of SIG) { const r = s[3](p); if (r) { hits.push([s, r]); L += s[2]; } }
     if (!hits.length) continue;
+    if (p.tdel && tdelAge(p.tdel) >= 12 && hits.length === 1 && hits[0][1].length === 1) L *= .5;   // only an old tax file: weak
     L = Math.min(.9, L + scoreOf(p).score / 400);
     // fee estimate: sale commission on estimated value (Tools > settings), or 5-yr lease fee at est. rent if larger
     const leaseFee = (d.sfOut ? d.sf : sf.sf) * setting('rentPsf', 8) * 5 * setting('leaseComm', 4) / 100;

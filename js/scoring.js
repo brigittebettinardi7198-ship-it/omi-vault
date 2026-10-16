@@ -1,3 +1,4 @@
+import { tdelFactor } from './util.js';
 import { leaseFlag, leaseTxt, appealPoint } from './adv.js';
 import { S, val, setting, ownerProps, propLeases, ownerFollowups, idx, CLOSED_STAGES, MOTIVATIONS } from './store.js';
 import { today, daysBetween, addMonths } from './util.js';
@@ -101,7 +102,7 @@ export function offMarket(p, W = weights()) {
   if (p.co === 'Cook' && /^[678]/.test(p.cls || '')) { const pts = W.incentive * .6; pubBonus += pts; R.push({ text: `Cook incentive class ${p.cls} (6b / 7 / 8 family). These incentives run about 10–12 years and can be renewed. Taxes jump when one ends, so check the expiration with the assessor`, kind: 'fact', pts }); }
   if (+p.bv || +p.v311) { const pts = W.distress * Math.min(1, ((+p.bv || 0) >= 5 ? .7 : .4) + (+p.v311 ? .5 : 0)); pubBonus += pts; R.push({ text: [p.bv ? `${p.bv} open City building violations (latest ${p.bvl})` : '', p.v311 ? `${p.v311} vacant/abandoned-building 311 complaint(s) (latest ${p.v311l})` : ''].filter(Boolean).join('; '), kind: 'fact', pts }); }
   if (p.warn) { const cl = /clos/i.test(p.warn); const pts = W.closing * (cl ? 1 : .5); pubBonus += pts; R.push({ text: (cl ? 'Plant closing notice: ' : 'Layoff notice: ') + p.warn + ' (source: IL WARN reports)', kind: 'fact', pts }); }
-  if (p.tdel && val(p, 'taxDelinquent') !== 'Yes') { pubBonus += W.taxDelinqPub; R.push({ text: `Listed in the Cook County Clerk 20-year delinquent-tax file dated ${p.tdel}. It may since have been paid, so check the Clerk's site for current status`, kind: 'fact', pts: W.taxDelinqPub }); }
+  if (p.tdel && val(p, 'taxDelinquent') !== 'Yes') { const tw = Math.round(W.taxDelinqPub * tdelFactor(p.tdel)); pubBonus += tw; R.push({ text: `Listed in the Cook County Clerk delinquent-tax file dated ${p.tdel}. It may since have been paid, so check current status before calling`, kind: 'fact', pts: tw }); }
   if (p.sbamat) { const m = daysBetween(now, p.sbamat + '-01') / 30.4; if (m >= -6 && m <= 24) { const pts = W.loanMaturity; pubBonus += pts; R.push({ text: `SBA 504 loan matures about ${p.sbamat} (ESTIMATE: approval date + term; may be paid off early). Refinance or sale decision coming`, kind: 'estimated', pts }); } }
   { const lf = leaseFlag(p); if (lf) { pubBonus += W.leasePredict; R.push({ text: leaseTxt(lf), kind: 'estimate', pts: W.leasePredict }); } }
   { const ap = appealPoint(p); if (ap) { pubBonus += W.taxAppeal; R.push({ text: ap.split(':')[0], kind: 'fact', pts: W.taxAppeal }); } }

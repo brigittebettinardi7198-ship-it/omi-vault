@@ -1,3 +1,4 @@
+import { tdelWeight } from './util.js';
 // Master spec section 4 (Reach and credibility): one-tap call labels (4.1), residential CMA (4.3), Text buyer (4.4),
 // editable paperwork templates (4.6), notes + tags (4.8), inbound speed-to-lead (4.9), portfolio review (4.11).
 // Imported phones stay in memory on this device only (from IndexedDB imports); nothing is uploaded.
@@ -80,7 +81,7 @@ export function portfolioRows(oid) { const L = ownerProps(oid); if (L.length < 3
   const R = L.map(p => { const v = Math.round(deal(p).value || +p.mv || 0), bought = +p.sp || 0, by = p.sd ? +p.sd.slice(0, 4) : 0, held = by ? yr - by : Math.floor(+p.hold || 0);
     // equity estimate: assume a 70% loan at purchase on a 25-year payoff; free and clear after 25 years (estimate, no loan data)
     const loan = bought && by ? Math.max(0, bought * .7 * (1 - (yr - by) / 25)) : held >= 25 ? 0 : null, eq = v && loan != null ? Math.max(0, v - loan) : null;
-    const gain = v && bought ? v / bought : 0, s = (gain > 1 ? Math.min(gain, 4) * 10 : 0) + Math.min(held, 40) + (p.tdel ? 15 : 0) + (p.vac ? 8 : 0);
+    const gain = v && bought ? v / bought : 0, s = (gain > 1 ? Math.min(gain, 4) * 10 : 0) + Math.min(held, 40) + (p.tdel ? tdelWeight(p.tdel, 15) : 0) + (p.vac ? 8 : 0);
     return { p, v, bought, by, held, eq, s }; }).sort((a, b) => b.s - a.s);
   return { R, tv: R.reduce((a, x) => a + x.v, 0), te: R.reduce((a, x) => a + (x.eq || 0), 0), unk: R.filter(x => x.eq == null).length }; }
 export function portfolioBtn(oid) { return ownerProps(oid).length >= 3 ? `<button class="btn sm" data-pfrev="${esc(oid)}" style="min-height:44px">Portfolio review</button>` : ''; }

@@ -1,4 +1,5 @@
 // Money engine (master spec section 1) + territory (7.3). Settings live in the 'money' / 'territory' settings keys (included in backup).
+import { tdelAge, tdelMonth } from './util.js';
 import { $, $$, esc, fmt, kmoney, today, addDays, daysBetween, toast, uid } from './util.js';
 import { S, val, setting, setSetting, addFollowup, ownerProps } from './store.js';
 import { deal, sfOf, scoreOf, activeMatchMap } from './scoring.js';
@@ -45,10 +46,10 @@ export function bigDealLeads() {
     if (!p.vac && ['individual', 'trust', 'estate', 'company'].includes(p.ot) && ownerOccupied(p)) T.push({ t: 'Owner-user: sale-leaseback candidate', d: null });
     const xe = x.find(e => v >= e.total * .6 && v <= e.total * 1.6 && e.props.some(z => z.p.co === p.co)); if (xe) T.push({ t: xe.d45 > 0 ? `1031 window: ${xe.d45} days left (${nc(xe.seller)})` : `1031 window: ${xe.d180} days left (${nc(xe.seller)})`, d: xe.d45 > 0 ? xe.d45 : xe.d180 });
     const m = mm.get(p.id); if (m && m.length) T.push({ t: `Your buyer fits: ${m[0].req.name}`, d: null });
-    if (p.tdel) T.push({ t: `Tax delinquent (Cook file ${p.tdel})`, d: null });
+    if (p.tdel) T.push({ t: `Tax delinquent as of ${tdelMonth(p.tdel)}${tdelAge(p.tdel) >= 6 ? ' (verify)' : ''}`, d: null, weak: tdelAge(p.tdel) >= 12 });
     if (p.ot === 'estate' || estateOn(p.id)) T.push({ t: 'Estate / heirs owner', d: null });
     if (+p.avchg >= 25) T.push({ t: `Assessment jumped ${Math.round(+p.avchg)}%`, d: null });
-    if (!T.length) continue;
+    if (!T.length || (T.length === 1 && T[0].weak)) continue;   // an old tax file alone is not a 90-day reason
     const dd = T.filter(t => t.d != null).map(t => t.d), days = dd.length ? Math.min(...dd) : null, urg = days == null ? 1 : Math.max(1, 1 + (90 - days) / 90), odds = Math.min(.9, .15 + scoreOf(p).score / 200 + T.length * .05);
     out.push({ p, o, v, th, T, days, rank: th * odds * urg * Math.min(1, Math.sqrt(15e6 / v)), odds });
   }

@@ -54,3 +54,11 @@ export const scoreBand = s => SCORE_BANDS.find(b => (+s || 0) >= b.min);
 export const scoreColor = s => scoreBand(s).color;
 export const scoreCls = s => scoreBand(s).cls;
 export const scorePill = s => `<span class="sc ${scoreCls(s)}"><i style="background:${scoreColor(s)}"></i>${s ?? "–"}</span>`;
+
+// Cook County delinquent-tax file: the signal fades with age (owners pay up), so weight and wording reflect how old the file is.
+export const tdelAge = d => d ? Math.max(0, daysBetween(String(d).slice(0, 10), today()) / 30.4) : 99;
+export const tdelFactor = d => { const m = tdelAge(d); return m < 6 ? 1 : m < 12 ? .6 : .35; };
+export const tdelWeight = (d, full) => Math.round(full * tdelFactor(d));
+export const tdelMonth = d => { try { return new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); } catch (e) { return String(d); } };
+export const tdelText = d => `on the Cook County delinquent-tax list as of ${tdelMonth(d)}${tdelAge(d) >= 6 ? ' (may be paid since, check first)' : ''}`;
+export const taxStatusUrl = p => `https://www.cookcountypropertyinfo.com/pinresults.aspx?pin=${String(p.pin || p.id || '').replace(/\D/g, '')}`;
