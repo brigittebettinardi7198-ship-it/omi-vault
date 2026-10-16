@@ -12,6 +12,7 @@ import { bindCall } from './callpanel.js';
 import { scoreHelp } from './ui.js';
 
 const NAV = [
+  ['big', 'Big Deals', 'M12 2l3 7h7l-5.5 4.5 2 7.5-6.5-4.5L5.5 21l2-7.5L2 9h7z'],
   ['offmarket', 'Off-Market', 'M3 13h8V3H3zm10 8h8V11h-8zM3 21h8v-6H3zm10-18v6h8V3z'],
   ['ask', 'Ask (smart search)', 'M15.5 14h-.8l-.3-.3A6.5 6.5 0 1016 9.5a6.5 6.5 0 01-1.6 4.2l.3.3v.8l5 5 1.5-1.5zm-6 0A4.5 4.5 0 1114 9.5 4.5 4.5 0 019.5 14z'],
   ['prospect', 'Prospecting', 'M6.6 10.8a15 15 0 006.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 013 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z'],
@@ -35,7 +36,7 @@ const MORE_D = 'M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z';
 const ico = k => NAV.find(x => x[0] === k)[2];
 // Five primary destinations; everything else lives under More (nothing removed)
 const PRIMARY = [['today', 'Today', 'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V9h14zM7 11h5v5H7z'], ['properties', 'Search', ico('properties')], ['offmarket', 'Off-Market', ico('offmarket')], ['requirements', 'Buyers', ico('owners')], ['more', 'More', MORE_D]];
-const SECTION = { today: 'today', stack: 'offmarket', property: 'properties', owner: 'requirements', owners: 'requirements', requirements: 'requirements', requirement: 'requirements', companies: 'requirements', occupants: 'requirements', slb: 'offmarket', company: 'requirements', command: 'offmarket', offmarket: 'offmarket', prospect: 'offmarket', ask: 'properties', properties: 'properties', near: 'properties', favs: 'favs' };
+const SECTION = { big: 'offmarket', today: 'today', stack: 'offmarket', property: 'properties', owner: 'requirements', owners: 'requirements', requirements: 'requirements', requirement: 'requirements', companies: 'requirements', occupants: 'requirements', slb: 'offmarket', company: 'requirements', command: 'offmarket', offmarket: 'offmarket', prospect: 'offmarket', ask: 'properties', properties: 'properties', near: 'properties', favs: 'favs' };
 const PEOPLE = [['requirements', 'Buyers'], ['owners', 'Owners'], ['companies', 'Tenants']];
 function shell() {
   document.body.innerHTML = `
@@ -71,7 +72,7 @@ async function route() {
   const sec = SECTION[r] || (r ? 'more' : 'today'); $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === sec));
   X.cmpTray();
   const el = $('#view'); el.scrollTop = 0; window.scrollTo(0, 0); backupBanner();
-  const fn = { stack: (el) => import('./pro.js').then(M => M.stackView(el)), occupants: (el) => import('./adv.js').then(M => M.occView(el)), slb: (el) => import('./adv.js').then(M => M.slbView(el)), today: (el) => import('./plan.js').then(M => M.planView(el)), command: V.command, offmarket: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
+  const fn = { big: (el) => import('./bigdeals.js').then(M => M.bigView(el)), stack: (el) => import('./pro.js').then(M => M.stackView(el)), occupants: (el) => import('./adv.js').then(M => M.occView(el)), slb: (el) => import('./adv.js').then(M => M.slbView(el)), today: (el) => import('./plan.js').then(M => M.planView(el)), command: V.command, offmarket: V.command, prospect: V.prospect, properties: V.properties, property: V.property, owners: V.owners, owner: V.owner, requirements: V.requirements, requirement: V.requirement, companies: V.companies, company: V.company, leases: V.leases, crm: V.crm, templates: V.templatesView, tools: V.tools, more: V.more, comps: V.compsView, ask: V.askView, compare: X.compareView, lists: X.listsView, brief: X.briefView, stats: X.statsView, near: nearView, favs: favView }[r] || V.command;
   try { await fn(el, id && decodeURIComponent(id)); polish(el, r, id); try { (await import('./pro.js')).enhance(el, r, id); } catch (e) { console.error(e); } tabBadge(); if (['owners', 'requirements', 'companies'].includes(r) && !id) { const pg = $('.page', el); if (pg) pg.insertAdjacentHTML('afterbegin', `<div class="seg peopleseg">${PEOPLE.map(([k, l]) => `<a class="${k === r ? 'on' : ''}" href="#/${k}">${l}</a>`).join('')}</div>`); } } catch (e) { console.error(e); el.innerHTML = `<div class="page"><h2>Something went wrong</h2><pre>${esc(e.stack || e)}</pre></div>`; }
 }
 function backupBanner() {
@@ -118,6 +119,7 @@ var EXPLAIN = {
   companies: 'Businesses that occupy these buildings (tenants), from public records and your notes.',
   favs: 'Properties you saved with the star. Kept on this device.',
   more: 'Everything else: maps, lists, tools, settings and backup.',
+  big: 'The largest buildings with a public reason to sell or lease, ranked by estimated fee. Tap Call script before you dial.',
   stack: 'Properties where three or more independent reasons to transact overlap.',
   ask: 'Type what you need in plain words, like “30,000 sq ft warehouse near I-55”.',
   near: 'Properties closest to where you are right now.',
