@@ -5,6 +5,7 @@ import { deal, sfOf, scoreOf } from './scoring.js';
 import { propertyLinks } from './markets.js';
 import { callablePhone } from './contacts.js';
 import { nc } from './extras.js';
+import { takeHome as th0 } from './money.js';
 
 const YR = new Date().getFullYear();
 const SRC = { warn: 'https://ides.illinois.gov/employment-training/workforce-development/warn-notices.html', sba: 'https://data.sba.gov/dataset/7-a-504-foia', tdel: 'https://www.cookcountyclerkil.gov/property-taxes/delinquent-taxes', ptax: 'https://tax.illinois.gov/localgovernments/property/ptax203.html' };
@@ -32,7 +33,7 @@ function build() {
   const rows = [];
   for (const p of S.props) {
     const sf = sfOf(p), d = deal(p);
-    if (sf.sf < MIN_SF && (d.value || 0) < MIN_V) continue; const ow = S.owners.get(p.ownerId); if (ow && (ow.dnc || ow.stage === 'Do not contact')) continue;
+    if (sf.sf < MIN_SF && (d.value || 0) < MIN_V) continue; const ow = S.owners.get(p.ownerId); if (ow && (ow.dnc || ow.stage === 'Do not contact' || ow.inst)) continue; if (p.ot === 'institutional' || (d.value || 0) > 30e6) continue;   // REITs and $30M+ trophies: not a 90-day win for a newer broker
     const hits = []; let L = 0;
     for (const s of SIG) { const r = s[3](p); if (r) { hits.push([s, r]); L += s[2]; } }
     if (!hits.length) continue;
@@ -40,12 +41,12 @@ function build() {
     // fee estimate: sale commission on estimated value (Tools > settings), or 5-yr lease fee at est. rent if larger
     const leaseFee = (d.sfOut ? d.sf : sf.sf) * setting('rentPsf', 8) * 5 * setting('leaseComm', 4) / 100;
     const fee = Math.max(d.commission || 0, leaseFee);
-    rows.push({ p, sf, d, hits, L, fee, ev: fee * L, kind: fee === leaseFee ? `5-yr lease at $${setting('rentPsf', 8)}/SF, ${setting('leaseComm', 4)}%` : `sale, ${d.kind}, ${setting('commRate', 3)}%` });
+    rows.push({ p, sf, d, hits, L, fee, ev: fee * L * Math.min(1, Math.sqrt(15e6 / Math.max(1, d.value || fee / .03))), kind: fee === leaseFee ? `5-yr lease at $${setting('rentPsf', 8)}/SF, ${setting('leaseComm', 4)}%` : `sale, ${d.kind}, ${setting('commRate', 3)}%` });
   }
   rows.sort((a, b) => (a.d.check - b.d.check) || b.ev - a.ev);   // implausible sizes sink to the bottom
   CACHE = { v: S.version, rows }; return rows;
 }
-let TAB = 'all', SHOWN = 50;
+let TAB = 'all', SHOWN = 25;
 export function bigView(el) {
   const all = build(), cnt = k => all.filter(r => r.hits.some(h => h[0][0] === k)).length;
   const rows = TAB === 'all' ? all : all.filter(r => r.hits.some(h => h[0][0] === TAB));
@@ -55,8 +56,8 @@ export function bigView(el) {
     <div class="xs muted" style="margin:6px 0 12px">Fee and likelihood are <b>estimates</b> (rules on public records, not a prediction). Change rates in Tools. Verify before you call.</div>
     <div id="bdl">${rows.slice(0, SHOWN).map(card).join('') || '<div class="muted pad">Nothing here yet.</div>'}</div>
     ${rows.length > SHOWN ? `<button class="btn" id="bdm" style="width:100%">Show more (${fmt(rows.length - SHOWN)} left)</button>` : ''}</div>`;
-  $$('[data-bt]', el).forEach(b => b.onclick = () => { TAB = b.dataset.bt; SHOWN = 50; bigView(el); });
-  const m = $('#bdm', el); if (m) m.onclick = () => { SHOWN += 50; bigView(el); };
+  $$('[data-bt]', el).forEach(b => b.onclick = () => { TAB = b.dataset.bt; SHOWN = 25; bigView(el); });
+  const m = $('#bdm', el); if (m) m.onclick = () => { SHOWN += 25; bigView(el); };
   $$('[data-scr]', el).forEach(b => b.onclick = () => { const box = b.nextElementSibling; box.hidden = !box.hidden; });
   $$('[data-copy]', el).forEach(b => b.onclick = () => { navigator.clipboard?.writeText(b.closest('.bdscr').querySelector('p').textContent).then(() => toast('Script copied')); });
 }
@@ -65,7 +66,7 @@ function card(r) {
   const ph = callablePhone(o), A = Object.fromEntries(propertyLinks({ address: val(p, 'address'), city: val(p, 'city'), zip: val(p, 'zip'), county: val(p, 'county'), pin: p.pin, lat: p.lat, lon: p.lon, taxpayer: val(p, 'taxpayer') }, o).filter(x => x[1]));
   const s0 = r.hits[0][0], first = /\b(LLC|L\.L\.C|INC|CO|CORP|CORPORATION|TRUST|LP|LTD|BANK|PARTNERS|COMPANY|HOLDINGS|PROPERTIES|ACCTG|TR|FUND|REIT)\b/i.test(name) ? 'there' : String(name).split(/[ ,]/)[0];
   return `<div class="card bdcard" style="padding:14px;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;gap:8px"><a href="#/property/${p.id}"><b>${esc(addr)}</b></a><b class="pos">${r.d.check ? '<span class="tag" style="background:#fef3c7;color:#92400e">check size</span> ' : ''}${kmoney(r.fee)}</b></div>
+    <div style="display:flex;justify-content:space-between;gap:8px"><a href="#/property/${p.id}"><b>${esc(addr)}</b></a><b class="pos">${r.d.check ? '<span class="tag" style="background:#fef3c7;color:#92400e">check size</span> ' : ''}${'≈ ' + kmoney(th0(r.fee)) + ' to you'}</b></div>
     <div class="xs muted">${esc(city)} · ${fmt(r.sf.sf)} SF${r.sf.est ? ' (est.)' : ''} · est. fee (${esc(r.kind)}) · likelihood ${Math.round(r.L * 100)}% (est.)</div>
     <div class="xs" style="margin-top:4px">Owner: ${p.ownerId ? `<a href="#/owner/${p.ownerId}">${esc(nc(name))}</a>` : esc(nc(name))}</div>
     <ul class="xs" style="margin:6px 0 6px 18px;padding:0">${r.hits.flatMap(([s, list]) => list.map(([t, u]) => `<li>${esc(t)}${u ? ` · <a href="${u}" target="_blank" rel="noopener">source</a>` : ''}</li>`)).join('')}

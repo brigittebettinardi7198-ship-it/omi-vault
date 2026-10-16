@@ -38,7 +38,7 @@ export function bigDealLeads() {
   for (const l of S.leases.values()) if (l.propertyId && l.expiration && +l.sf >= 50000) { const d = daysBetween(now, l.expiration); if (d >= 0 && d <= 365) lease.set(l.propertyId, Math.min(d, lease.get(l.propertyId) ?? 999)); }
   const x = x1031Buyers().filter(e => e.d180 > 0 && e.total >= 1e6);
   for (const p of S.props) {
-    const o = S.owners.get(p.ownerId); if (dnc(o) || (o && o.inst) || p.ot === 'institutional' || !inTerritory(p)) continue; const dq = deal(p), v = dq.value || 0; if (v < minV || dq.check) continue;   // implausible size: not a 90-day lead
+    const o = S.owners.get(p.ownerId); if (dnc(o) || (o && o.inst) || p.ot === 'institutional' || !inTerritory(p)) continue; const dq = deal(p), v = dq.value || 0; if (v < minV || dq.check || v > VCHK) continue; const sd0 = val(p, 'lastSaleDate'); if (sd0 && daysBetween(sd0, now) < 3 * 365) continue; if (o && ownerProps(o.id).length > 12) continue;   // implausible size: not a 90-day lead
     const th = takeHomeValue(v); if (th < c.big) continue;
     const T = [];
     if (lease.has(p.id)) T.push({ t: `Lease ends in ${lease.get(p.id)} days`, d: lease.get(p.id) });
@@ -50,13 +50,13 @@ export function bigDealLeads() {
     if (+p.avchg >= 25) T.push({ t: `Assessment jumped ${Math.round(+p.avchg)}%`, d: null });
     if (!T.length) continue;
     const dd = T.filter(t => t.d != null).map(t => t.d), days = dd.length ? Math.min(...dd) : null, urg = days == null ? 1 : Math.max(1, 1 + (90 - days) / 90), odds = Math.min(.9, .15 + scoreOf(p).score / 200 + T.length * .05);
-    out.push({ p, o, v, th, T, days, rank: th * odds * urg, odds });
+    out.push({ p, o, v, th, T, days, rank: th * odds * urg * Math.min(1, Math.sqrt(15e6 / v)), odds });
   }
   out.sort((a, b) => b.rank - a.rank); BIG = { v: S.version, list: out.slice(0, 200) }; return BIG.list;
 }
 // ---------- 1.2 Path to $100K ----------
 const NEXT = { Lead: 'Book a meeting', Pitched: 'Send the proposal', 'Touring / Listed': 'Get an LOI or tour', 'Under contract': 'Clear the next deadline' };
-export function pathHTML() {
+export function pathHTML(compact) {
   const c = cfg(), D = deals(), paid0 = capPaid(); let paid = 0, closed = 0;
   for (const d of D.filter(d => d.stage === 'Closed' && String(d.close || d.created || '').slice(0, 4) === yr())) { const g = gross(d); closed += takeHome(g, paid); paid += Math.min(g * (1 - c.split / 100), Math.max(0, c.cap - paid)); }
   const open = D.filter(d => d.stage !== 'Closed'), signed = open.filter(d => d.stage === 'Under contract').reduce((a, d) => a + takeHome(gross(d), paid0), 0), weighted = open.reduce((a, d) => a + takeHome(gross(d), paid0) * (PROB[d.stage] || 0), 0);
@@ -69,8 +69,8 @@ export function pathHTML() {
    <div class="earn"><div><span>Closed</span><b>${kmoney(closed) || '$0'}</b></div><div><span>Signed, not closed</span><b>${kmoney(signed) || '$0'}</b></div><div><span>Weighted pipeline</span><b>${kmoney(weighted) || '$0'}</b></div></div>
    <div class="gbar"><i style="width:${pc}%"></i><i class="ex" style="width:${ps}%;opacity:.7"></i><i class="ex" style="width:${pw}%;opacity:.35"></i></div>
    <div style="margin-top:6px">${left ? `You need <b>${need}</b> more deal${need === 1 ? '' : 's'} like ${top3.length ? 'your top 3' : 'a typical ' + kmoney(c.typical) + ' sale'}${c.goalDate ? ` by ${esc(c.goalDate)}` : ''}.` : '<b>Goal covered by closed + signed deals.</b>'}</div>
-   ${likely.length ? `<ol class="xs" style="padding-left:18px;margin:6px 0 0">${likely.map(d => { const [s, due] = nextOf(d); return `<li><b>${esc(d.name)}</b> · ${esc(d.stage)} · ≈ ${kmoney(takeHome(gross(d), paid0))} to you: ${esc(s)} by ${esc(due)}</li>`; }).join('')}</ol>` : '<div class="xs muted">No deals yet. Tap "Interested" on a call or add one in Deals.</div>'}
-   <div class="xs muted">Take-home uses your split ${c.split}% until the Real cap (${kmoney(c.cap)} company dollar), then 100%. Estimates.</div></section>`;
+   ${likely.length ? `<ol class="xs" style="padding-left:18px;margin:6px 0 0">${likely.map(d => { const [s, due] = nextOf(d); return `<li><b>${esc(d.name)}</b> · ${esc(d.stage)} · ≈ ${kmoney(takeHome(gross(d), paid0))} to you: ${esc(s)} by ${esc(due)}</li>`; }).join('')}</ol>` : (compact ? '' : '<div class="xs muted">No deals yet. Tap "Interested" on a call or add one in Deals.</div>')}
+   ${compact ? '' : `<div class="xs muted">Take-home uses your split ${c.split}% until the Real cap (${kmoney(c.cap)} company dollar), then 100%. Estimates.</div>`}</section>`;
 }
 // ---------- 1.9 My 10 target deals ----------
 export const targets = () => setting('targets', []) || [];

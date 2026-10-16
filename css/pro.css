@@ -136,3 +136,20 @@ h1{font-size:26px;font-weight:750;letter-spacing:-.025em;line-height:1.15}
 .pr-sheet .pn-links a{padding:11px 12px;font-size:15px}
 .pr-sheet .pn-links{columns:1}
 @media (min-width:901px){.pr-sheet{display:none!important}}
+
+/* ===== Simple Today (Oct 16) ===== */
+.pc-call[hidden]{display:none!important}
+.pcall .pc-top{display:flex;align-items:flex-start;gap:10px}
+.pcall .pc-who{flex:1 1 auto;min-width:0}
+.pcall .pc-who b{overflow-wrap:anywhere}
+.pcall .pc-call{flex:0 0 auto;min-width:88px;padding:0 14px}
+.pc-chip{margin:6px 0 0}.pc-chip .tag{font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px}
+.page.plan .outs{display:flex;flex-wrap:nowrap;gap:6px;margin-top:8px}
+.page.plan .outs .outb{flex:1 1 0;min-width:0;padding:8px 2px;font-size:13px;white-space:nowrap;min-height:44px}
+.page.plan .outs2{margin-top:4px}
+.pc-more>summary{font-size:14px;color:var(--acc,#1d5fe0);cursor:pointer;padding:6px 0}
+.pc-more .pc-script{font-size:14px;margin:4px 0 8px}
+.pathcard .earn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+.pathcard .earn span{display:block;font-size:12px;color:var(--mut,#6b7280)}
+.pathcard .earn b{display:block;font-size:18px}
+details.fold>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}

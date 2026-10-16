@@ -16,14 +16,14 @@ export async function loadPhones() { if (PH) return PH; PH = new Map(); try { co
 export const resetPhones = () => { PH = null; };
 const first = n => { const s = nc(String(n || '')).replace(/,.*$/, '').trim(); if (!s || ENT.test(s)) return ''; return s.split(/\s+/)[0]; };
 const findLinks = (name, city) => { const n = nc(name || ''), g = `https://www.google.com/search?q=${encodeURIComponent(`"${n}" ${nc(city || '')} phone`)}`;
-  return `<a class="bact primary pc-call" target="_blank" rel="noopener" href="${g}">Find number</a>${ENT.test(n) ? `<a class="bact pc-call" target="_blank" rel="noopener" href="${SOS}" title="Illinois Secretary of State business search: find the LLC manager or agent">IL SOS</a>` : ''}`; };
+  return `<a class="bact primary pc-call" target="_blank" rel="noopener" href="${g}" title="Search for this owner's phone number">Find #</a>`; };   // IL SOS link lives under the card's More
 // commercial card (owner o, property p): imported phone > saved / business phone (call panel) > Find number
 export function callBtn(o, p) {
   const ph = PH && p && PH.get(na(val(p, 'address')));
   if (ph) return `<a class="bact primary pc-call" href="tel:${esc(dig(ph.t))}" title="${esc(ph.src)} phone (your import)">☎ ${esc(first(ph.n) || first(o && o.name) || 'Call')}</a>`;
   let has = !!(o && o.phone); if (!has) for (const q of ownerProps(o.id)) if ((q.bph || []).length) { has = true; break; }
   if (has) return `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">☎ ${o.phone ? esc(first(o.contactName || o.name) || 'Call') : 'Business'}</button>`;
-  return `<button class="bact pc-call" data-call="o:${esc(o.id)}" hidden></button>${findLinks(o.name, val(p, 'city'))}`;
+  return findLinks(o.name, val(p, 'city'));
 }
 export function resiCallBtn(x) { const ph = PH && PH.get(na(x.p.a)); return ph ? `<a class="bact primary pc-call" href="tel:${esc(dig(ph.t))}">☎ ${esc(first(ph.n) || first(x.p.own) || 'Call')}</a>` : findLinks(x.p.own, x.p.mc || x.p.city); }
 // ---- 4.8 relationship memory: notes + tags (last note on top of card) ----

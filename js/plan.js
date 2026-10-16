@@ -7,7 +7,7 @@ import { favBtn } from './favs.js';
 import { vacancyOf } from './sheets.js';
 import { likelyBuyers, qualify } from './buyers.js';
 import { x1031Buyers, nc } from './extras.js';
-import { pathHTML, targetsHTML, guardHTML, overdueHTML, scorecardHTML, bigDealLeads, bigCardHTML, bindMoney, dnc, inTerritory } from './money.js';
+import { pathHTML, targetsHTML, guardHTML, overdueHTML, scorecardHTML, bigDealLeads, bigCardHTML, bindMoney, dnc, inTerritory, chip, takeHomeValue } from './money.js';
 import * as RC from './reach.js';
 import { pitchLine, autopilot, draftBtns, buyerAlertsHTML, estateListHTML, driveRoute, driveHTML } from './edge.js';
 
@@ -38,7 +38,8 @@ function candidates() {
     if (o.inst || dnc(o) || GOV.test(String(o.name || '').toUpperCase())) continue;
     const props = ownerProps(o.id).filter(inTerritory); if (!props.length || props.length > 12) continue;   // 12+ parcels = large company portfolio
     let best = null;
-    for (const p of props) { const sig = propSignals(p); if (!sig.length) continue; const s = sig.reduce((a, x) => a + x[0], 0); if (!best || s > best.s) best = { p, sig, s }; }
+    for (const p of props) { const sd = val(p, 'lastSaleDate'); if (sd && daysBetween(sd, today()) < 3 * 365) continue;   // just bought: not a seller
+      const sig = propSignals(p); if (!sig.length) continue; const s = sig.reduce((a, x) => a + x[0], 0); if (!best || s > best.s) best = { p, sig, s }; }
     if (!best || best.s < 20) continue;
     const d = deal(best.p); list.push({ o, p: best.p, sig: best.sig.sort((a, b) => b[0] - a[0]), s: best.s + Math.min(15, (d.value || 0) / 1e6), value: d.value || 0 });
   }
@@ -50,20 +51,22 @@ function buyerBonus(c) {
   const v = c.value; const x = x1031Buyers().find(e => e.d180 > 0 && e.props.some(z => z.p.co === c.p.co) && v && v >= e.total * .4 && v <= e.total * 1.6); if (x) return [10, `1031 buyer ${nc(x.seller)} must buy by ${x.c180}`];
   return null;
 }
+// Money-first ranking: estimated take-home x odds, scaled down for mega properties a newer broker rarely wins off a cold call.
+export const moneyRank = (value, r) => takeHomeValue(+value || 0) * Math.max(.03, Math.min(.5, (+r || 0) / 200)) * Math.min(1, Math.sqrt(15e6 / Math.max(1, +value || 1)));
 // ---------- daily plan: 10 owners, no repeats within 14 days ----------
 export function dailyPlan() {
   const t = today(), cur = setting('plan', null);
-  const pick = cur && cur.d === t ? cur.ids : null;
+  const pick = cur && cur.d === t && cur.v === 3 ? cur.ids : null;
   const all = candidates(), byId = new Map(all.map(c => [c.o.id, c]));
   let rows;
   if (pick) rows = pick.map(id => byId.get(id)).filter(Boolean);
   else {
     const hist = setting('planHist', {}) || {}, outc = setting('outc', {}) || {};
     const ok = c => { const h = hist[c.o.id]; if (h && daysBetween(h, t) < 14) return false; const last = (outc[c.o.id] || [])[0]; return !(last && last.o === 'no' && daysBetween(last.d, t) < 180); };
-    const pool = all.filter(ok).slice(0, 80).map(c => { const b = buyerBonus(c); return { ...c, b, r: c.s + (b ? b[0] : 0) }; }).sort((a, b) => b.r - a.r).slice(0, 10);
+    const pool = all.filter(c => ok(c) && !(c.value > 30e6)).slice(0, 150).map(c => { const b = buyerBonus(c), r = c.s + (b ? b[0] : 0); return { ...c, b, r, ex: moneyRank(c.value, r) }; }).sort((a, b) => b.ex - a.ex).slice(0, 10);
     rows = pool; const h2 = { ...hist }; pool.forEach(c => h2[c.o.id] = t);
     for (const k of Object.keys(h2)) if (daysBetween(h2[k], t) > 30) delete h2[k];
-    setSetting('planHist', h2); setSetting('plan', { d: t, ids: pool.map(c => c.o.id) });
+    setSetting('planHist', h2); setSetting('plan', { d: t, v: 3, ids: pool.map(c => c.o.id) });
   }
   return rows.map(c => c.b === undefined ? { ...c, b: buyerBonus(c) } : c);
 }
@@ -84,7 +87,9 @@ async function record(oid, pid, code) {
   if (['int', 'mtg', 'prop'].includes(code)) { const D = setting('deals', []) || []; if (!D.some(d => d.oid === oid && d.stage !== 'Closed')) { const p = S.prop.get(pid); D.unshift({ id: uid('d'), oid, pid, name: nc(val(p, 'address') || S.owners.get(oid)?.name || 'Deal'), stage: 'Lead', value: Math.round(deal(p).value || 0) || '', comm: 3, split: 50, created: t }); await setSetting('deals', D); msg += ' · added to pipeline'; } }
   toast(msg);
 }
-const outBtns = (oid, pid) => `<div class="outs">${OUTCOMES.map(([k, l]) => `<button class="outb o-${k}" data-out="${k}" data-oid="${esc(oid)}" data-pid="${esc(pid || '')}">${l}</button>`).join('')}</div>`;
+const OB = (oid, pid, keys, cls = 'outs') => `<div class="${cls}">${keys.map(k => [k, ({ na: 'No answer', no: 'Pass' })[k] || OUTCOMES.find(x => x[0] === k)[1]]).map(([k, l]) => `<button class="outb o-${k}" data-out="${k}" data-oid="${esc(oid)}" data-pid="${esc(pid || '')}">${l}</button>`).join('')}</div>`;
+const outBtns = (oid, pid) => OB(oid, pid, ['na', 'talked', 'int', 'no']);
+const outMore = (oid, pid) => OB(oid, pid, ['vm', 'mtg', 'prop'], 'outs outs2');
 const NY = new Date().getFullYear() + 1, TAGS = [`maybe ${NY}`, 'wants $…', 'partner decides', 'hates brokers', 'has another building', 'owns a business', '+ custom'];
 const rtags = oid => ((setting('rtags', {}) || {})[oid] || []);
 const tagRow = (oid, pid) => `<div class="rtags xs" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${rtags(oid).map(t => `<span class="tag" style="background:#e0e7ff">${esc(t.t)}</span>`).join('')}${TAGS.map(t => `<button class="fchip" style="min-height:30px" data-rtag="${esc(t)}" data-oid="${esc(oid)}" data-pid="${esc(pid || '')}">${esc(t)}</button>`).join('')}</div>`;
@@ -137,20 +142,20 @@ function feedHTML() {
 export async function planView(el, sub) {
   await RC.loadPhones(); const RH = await import('./rhythm.js'); const RS = await import('./resi.js'), rba = await RC.resiBuyerAlertsHTML().catch(() => ''), resi = await RS.resiCalls().catch(() => []);
   const rows = dailyPlan().slice(0, 10 - resi.length), due = dueList(), t = today();
+  const more = (oid, pid, extra = '') => `<details class="pc-sc pc-more"><summary>More</summary>${extra}${outMore(oid, pid)}${tagRow(oid, pid)}${RC.notesBox(oid, pid)}${RC.portfolioBtn(oid)}<a class="xs" target="_blank" rel="noopener" href="${esc(RC.SOS)}">Who runs the LLC (IL Secretary of State)</a></details>`;
   const card = (c, i) => `<div class="pcall"><div class="pc-top"><span class="pc-n">${i + 1}</span><div class="pc-who"><a href="#/owner/${esc(c.o.id)}"><b>${esc(nc(c.o.name))}</b></a><a class="xs" href="#/property/${esc(c.p.id)}">${esc(nc(val(c.p, 'address') || ''))}, ${esc(nc(val(c.p, 'city') || ''))}</a></div>${RC.callBtn(c.o, c.p)}</div>${RC.memTop(c.o.id)}
-    <div class="pc-why">${esc(reason(c))}</div>${rollup(c.o.id)}${RC.portfolioBtn(c.o.id)}${lastOut(c.o.id)}
-    <details class="pc-sc"><summary>Script</summary><p>${esc(script(c))}</p></details>${outBtns(c.o.id, c.p.id)}${tagRow(c.o.id, c.p.id)}${RC.notesBox(c.o.id, c.p.id)}</div>`;
-  const dueCard = f => { const o = S.owners.get(f.ownerId), p = f.propertyId && S.prop.get(f.propertyId); return `<div class="pcall due"><div class="pc-top"><span class="pc-n">!</span><div class="pc-who">${o ? `<a href="#/owner/${esc(o.id)}"><b>${esc(nc(o.name))}</b></a>` : '<b>Follow-up</b>'}${p ? `<a class="xs" href="#/property/${esc(p.id)}">${esc(nc(val(p, 'address') || ''))}</a>` : ''}</div>${o ? `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">Call</button>` : ''}</div><div class="pc-why">${esc(f.note || 'Follow-up')} · due ${esc(f.due)}${f.due < t ? ' (overdue)' : ''}</div>${draftBtns(f)}${o ? outBtns(o.id, f.propertyId) + tagRow(o.id, f.propertyId) : ''}</div>`; };
+    <div class="pc-chip">${chip(c.value)}</div><div class="pc-why">${esc(reason(c))}</div>${rollup(c.o.id)}${lastOut(c.o.id)}
+    ${outBtns(c.o.id, c.p.id)}${more(c.o.id, c.p.id, `<p class="pc-script"><b>What to say:</b> ${esc(script(c))}</p>`)}</div>`;
+  const dueCard = f => { const o = S.owners.get(f.ownerId), p = f.propertyId && S.prop.get(f.propertyId); return `<div class="pcall due"><div class="pc-top"><span class="pc-n">!</span><div class="pc-who">${o ? `<a href="#/owner/${esc(o.id)}"><b>${esc(nc(o.name))}</b></a>` : '<b>Follow-up</b>'}${p ? `<a class="xs" href="#/property/${esc(p.id)}">${esc(nc(val(p, 'address') || ''))}</a>` : ''}</div>${o ? `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">Call</button>` : ''}</div><div class="pc-why">${esc(f.note || 'Follow-up')} · due ${esc(f.due)}${f.due < t ? ' (overdue)' : ''}</div>${draftBtns(f)}${o ? outBtns(o.id, f.propertyId) + more(o.id, f.propertyId) : ''}</div>`; };
   const fd = fuDays();
   const big90 = !!setting('big90', false), bigL = big90 ? bigDealLeads().slice(0, 10) : [];
-  el.innerHTML = `<div class="page plan"><div class="hello"><h1>Today</h1><p class="explain">Your path to the goal, call-backs, then your 10 calls. Tap an outcome after each call.</p></div>
-    ${RH.briefHTML(rows, resi, reason)}${RH.winHTML()}${overdueHTML()}${RS.speedHTML()}${pathHTML()}${targetsHTML()}${guardHTML()}
-    <div id="prosx"></div>${due.length ? `<h2 class="plan-h">Call back today <span class="cnt">${due.length}</span></h2>${due.slice(0, 15).map(dueCard).join('')}` : ''}
+  el.innerHTML = `<div class="page plan"><div class="hello"><h1>Today</h1></div>
+    ${overdueHTML()}${pathHTML(true)}${due.length ? `<h2 class="plan-h">Call back today <span class="cnt">${due.length}</span></h2>${due.slice(0, 15).map(dueCard).join('')}` : ''}
     <div class="ch" style="margin-top:14px"><h2 class="plan-h" style="margin:0">${big90 ? '90-Day Big Deal calls' : 'Your 10 calls'} · ${new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</h2><label class="fchip" style="min-height:44px"><input type="checkbox" id="big90" ${big90 ? 'checked' : ''}> 90-Day Big Deal</label></div>
     ${big90 ? (bigL.length ? bigL.map(bigCardHTML).join('') : '<div class="muted">No leads meet the 90-Day rules (take-home and a deadline trigger). Lower the minimum in Deals settings or widen your territory.</div>') : (rows.length || resi.length) ? rows.map(card).join('') + resi.map((x, i) => RS.resiCardHTML(x, rows.length + i + 1, outBtns)).join('') : '<div class="muted">No owners with strong sell signals in your territory right now.</div>'}
-    ${scorecardHTML()}
-    <h2 class="plan-h">Fastest money</h2>${buyerAlertsHTML()}${rba}${estateListHTML()}<div class="xs muted"><a href="#/big">Big Deals ›</a></div>
-    <details class="card" style="padding:10px;margin-top:12px"><summary><b>More for today</b> <span class="xs muted">drive day, record changes, your files, more lead types</span></summary>
+    <details class="card fold" style="padding:10px;margin-top:14px"><summary><b>Fastest money</b> <span class="xs muted">buyers waiting, estates, keep 5 deals alive</span></summary>${guardHTML()}${buyerAlertsHTML()}${rba}${estateListHTML()}<a class="btn" href="#/big" style="display:block;text-align:center;margin-top:8px">Big Deals ›</a></details>
+    <details class="card fold" style="padding:10px;margin-top:10px"><summary><b>This week</b> <span class="xs muted">scorecard, target deals, inbound${new Date().getDay() === 5 ? ', Friday summary' : ''}</span></summary>${scorecardHTML()}${targetsHTML()}${RS.speedHTML()}${new Date().getDay() === 5 ? RH.winHTML() : ''}<div id="prosx"></div></details>
+    <details class="card fold" style="padding:10px;margin-top:10px"><summary><b>More for today</b> <span class="xs muted">drive day, record changes, your files, more lead types</span></summary>
     <button class="btn primary" id="drive" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">Plan a drive day</button><div id="driveout"></div>
     ${feedHTML()}
     <h2 class="plan-h">Your CoStar / LoopNet / Crexi files <span class="xs muted">(private, this device only)</span></h2><button class="btn" id="impbtn" style="width:100%;margin-bottom:8px">Import CoStar / LoopNet / Crexi file</button><div id="impx"><div class="xs muted">Loading…</div></div>
