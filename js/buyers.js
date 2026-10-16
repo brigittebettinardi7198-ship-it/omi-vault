@@ -42,6 +42,8 @@ export function buyerProfiles() {
 }
 export const sizeRange = b => b.sfMin ? (b.n >= 5 && b.sfLo ? `${fmt(Math.round(b.sfLo / 1000))}k–${fmt(Math.round(b.sfHi / 1000))}k SF` : b.sfMin === b.sfMax ? `${fmt(Math.round(b.sfMin / 1000))}k SF` : `${fmt(Math.round(b.sfMin / 1000))}k–${fmt(Math.round(b.sfMax / 1000))}k SF`) : 'land / unknown size';
 // "Likely buyers for this building": repeat buyers whose past purchases fit this property's size, price and area
+// Institutions and funds have their own broker relationships; a newer broker's realistic buyers are private LLCs and local operators.
+export const isInstitutional = n => /\b(PROLOGIS|STAG\b|REALTY INCOME|LINK LOGISTICS|BLACKSTONE|BREIT|EXETER|FIRST INDUSTRIAL|CENTERPOINT|DALFEN|CLARION|LBA\b|REXFORD|GLP\b|BRIDGE INDUSTRIAL|CABOT|TA REALTY|INVESCO|NUVEEN|TIAA|PGIM|AEW\b|JP ?MORGAN|MORGAN STANLEY|BROOKFIELD|KKR\b|ARES\b|DUKE REALTY|VENTURE ONE|LOGISTICS FUND|LOGISTICS PROPERT|INDUSTRIAL REALTY|REIT\b|FUND\b|CAPITAL PARTNERS|STORE MASTER|W ?P ?CAREY|CORESITE|DIGITAL REALTY|EQUINIX|PLD|JLL|TRS|PORTFOLIO|LOGISTICS|EXCHANGE|INDUSTRIAL PROPERT|ACQUISITION CO|AMAZON|FEDEX|UNITED PARCEL|TARGET CORP|WALMART|HOME DEPOT|COSTCO)\b/i.test(String(n || ''));
 export function likelyBuyers(p, k = 5) {
   const d = deal(p), sf = d.sf || 0, v = d.value || 0, city = nc(val(p, 'city') || ''), area = areaOf(val(p, 'city')), co = p.co;
   const mine = new Set([buyerKey(val(p, 'taxpayer')), buyerKey(val(p, 'lastBuyer')), p.ownerId && buyerKey(S.owners.get(p.ownerId)?.name)].filter(Boolean));
@@ -53,9 +55,9 @@ export function likelyBuyers(p, k = 5) {
     const fa = city && b.cities.includes(city) ? 1 : area && b.areas.includes(area) ? .7 : b.counties.includes(co) ? .35 : 0;
     if (fs === 0 || fa === 0 || (fa < .5 && co === 'Cook')) continue; // Cook is too big for a county-only match
     const days = daysBetween(b.latest.sd, today()), rec = days <= 365 ? 1 : days <= 730 ? .6 : .3;
-    const s = 35 * fs + 20 * fv + 25 * fa + 12 * Math.min(1, (b.n - 1) / 3) + 8 * rec;
+    const inst = isInstitutional(b.name) || b.n >= 10, s = (35 * fs + 20 * fv + 25 * fa + 12 * Math.min(1, (b.n - 1) / 3) + 8 * rec) * (inst ? .55 : 1);
     const where = fa === 1 ? `bought in ${city}` : fa > .5 ? `active in ${area}` : `active in ${co} County`;
-    out.push({ b, s: Math.round(s), why: `${b.n} purchases${b.np > b.n ? ` (${b.np} parcels)` : ''} since ${b.tx[b.tx.length - 1].sd.slice(0, 4)} · ${sizeRange(b)} · ${where} · latest ${b.latest.sd}` });
+    out.push({ b, inst, s: Math.round(s), why: `${b.n} purchases${b.np > b.n ? ` (${b.np} parcels)` : ''} since ${b.tx[b.tx.length - 1].sd.slice(0, 4)} · ${sizeRange(b)} · ${where} · latest ${b.latest.sd}` });
   }
   return out.sort((a, b) => b.s - a.s).slice(0, k);
 }

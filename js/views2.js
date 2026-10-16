@@ -305,4 +305,5 @@ export async function tools(el, sub) {
       toast(`Imported: ${n} new, ${upd} updated`); $('#imap').innerHTML = `<div class="ok pad">Done: ${n} new, ${upd} updated.</div>`;
     };
   }
+  import('./dnc.js').then(D => { const st = $('#settings', el); if (st) { st.insertAdjacentHTML('afterend', D.dncCardHTML()); D.bindDnc(el, () => tools(el, sub)); } });
 }

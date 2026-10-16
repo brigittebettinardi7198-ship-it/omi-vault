@@ -26,7 +26,7 @@ export function callBtn(o, p) {
   if (has) return `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">☎ ${o.phone ? esc(first(o.contactName || o.name) || 'Call') : 'Business'}</button>`;
   return findLinks(o.name, val(p, 'city'));
 }
-export function resiCallBtn(x) { const ph = PH && PH.get(na(x.p.a)); return ph ? `<a class="bact primary pc-call" href="tel:${esc(dig(ph.t))}">☎ ${esc(first(ph.n) || first(x.p.own) || 'Call')}</a>` : findLinks(x.p.own, x.p.mc || x.p.city); }
+export function resiCallBtn(x) { const ph = PH && PH.get(na(x.p.a)); if (ph && window.__isDNC && window.__isDNC(ph.t)) return `<span class="bact pc-call" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;font-size:13px" title="This number is on the National Do Not Call Registry. Mail or door-knock instead.">On DNC list</span>`; return ph ? `<a class="bact primary pc-call" href="tel:${esc(dig(ph.t))}">☎ ${esc(first(ph.n) || first(x.p.own) || 'Call')}</a>` : findLinks(x.p.own, x.p.mc || x.p.city); }
 // ---- 4.8 relationship memory: notes + tags (last note on top of card) ----
 const NOTES = () => setting('rnotes', {}) || {};
 export function memTop(oid) { const n = (NOTES()[oid] || [])[0], t = ((setting('rtags', {}) || {})[oid] || []); if (!n && !t.length) return '';

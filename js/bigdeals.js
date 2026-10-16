@@ -1,11 +1,12 @@
 // Big Deals: ranks 100k+ SF / $10M+ properties by estimated fee x rule-based likelihood. Public data only; every number marked as an estimate.
-import { S, val, setting, firm } from './store.js';
+import { S, val, setting, setSetting, firm } from './store.js';
 import { $, $$, esc, kmoney, fmt, toast } from './util.js';
 import { deal, sfOf, scoreOf } from './scoring.js';
 import { propertyLinks } from './markets.js';
 import { callablePhone } from './contacts.js';
 import { nc } from './extras.js';
 import { tdelAge, tdelMonth } from './util.js';
+import { touchHTML, logTouch, touchedRecently } from './ledger.js';
 import { takeHome as th0 } from './money.js';
 
 const YR = new Date().getFullYear();
@@ -43,7 +44,7 @@ function build() {
     // fee estimate: sale commission on estimated value (Tools > settings), or 5-yr lease fee at est. rent if larger
     const leaseFee = (d.sfOut ? d.sf : sf.sf) * setting('rentPsf', 8) * 5 * setting('leaseComm', 4) / 100;
     const fee = Math.max(d.commission || 0, leaseFee);
-    rows.push({ p, sf, d, hits, L, fee, ev: fee * L * Math.min(1, Math.sqrt(15e6 / Math.max(1, d.value || fee / .03))), kind: fee === leaseFee ? `5-yr lease at $${setting('rentPsf', 8)}/SF, ${setting('leaseComm', 4)}%` : `sale, ${d.kind}, ${setting('commRate', 3)}%` });
+    rows.push({ p, sf, d, hits, L, fee, ev: fee * L * Math.min(1, 15e6 / Math.max(1, d.value || fee / .03)), kind: fee === leaseFee ? `5-yr lease at $${setting('rentPsf', 8)}/SF, ${setting('leaseComm', 4)}%` : `sale, ${d.kind}, ${setting('commRate', 3)}%` });
   }
   rows.sort((a, b) => (a.d.check - b.d.check) || b.ev - a.ev);   // implausible sizes sink to the bottom
   CACHE = { v: S.version, rows }; return rows;
@@ -51,16 +52,20 @@ function build() {
 let TAB = 'all', SHOWN = 25;
 export function bigView(el) {
   const all = build(), cnt = k => all.filter(r => r.hits.some(h => h[0][0] === k)).length;
-  const rows = TAB === 'all' ? all : all.filter(r => r.hits.some(h => h[0][0] === TAB));
+  const hideTouched = setting('bdHide', true) !== false;
+  const rows0 = TAB === 'all' ? all : all.filter(r => r.hits.some(h => h[0][0] === TAB)), rows = hideTouched ? rows0.filter(r => !touchedRecently({ oid: r.p.ownerId, name: (S.owners.get(r.p.ownerId) || {}).name || val(r.p, 'taxpayer'), addr: val(r.p, 'address'), city: val(r.p, 'city') })) : rows0;
   const tabs = [['all', 'All', all.length], ...SIG.map(s => [s[0], s[1], cnt(s[0])])];
   el.innerHTML = `<div class="page narrow"><div class="ph"><div><h1>Big Deals</h1><div class="muted">${fmt(all.length)} large properties (100k+ SF or $10M+) with a public reason to transact, biggest likely fee first.</div></div></div>
     <div class="chips fchips">${tabs.map(([k, l, n]) => `<button class="fchip ${TAB === k ? 'on' : ''}" data-bt="${k}">${l} <span class="xs muted">${fmt(n)}</span></button>`).join('')}</div>
+    <label class="xs" style="display:flex;gap:6px;align-items:center;margin:4px 0"><input type="checkbox" id="bdhide" ${hideTouched ? 'checked' : ''}> Hide owners contacted in the last 14 days (from any screen)</label>
     <div class="xs muted" style="margin:6px 0 12px">Fee and likelihood are <b>estimates</b> (rules on public records, not a prediction). Change rates in Tools. Verify before you call.</div>
     <div id="bdl">${rows.slice(0, SHOWN).map(card).join('') || '<div class="muted pad">Nothing here yet.</div>'}</div>
     ${rows.length > SHOWN ? `<button class="btn" id="bdm" style="width:100%">Show more (${fmt(rows.length - SHOWN)} left)</button>` : ''}</div>`;
   $$('[data-bt]', el).forEach(b => b.onclick = () => { TAB = b.dataset.bt; SHOWN = 25; bigView(el); });
   const m = $('#bdm', el); if (m) m.onclick = () => { SHOWN += 25; bigView(el); };
+  $('#bdhide', el).onchange = async e => { await setSetting('bdHide', e.target.checked); bigView(el); };
   $$('[data-scr]', el).forEach(b => b.onclick = () => { const box = b.nextElementSibling; box.hidden = !box.hidden; });
+  $$('[data-bdout]', el).forEach(b => b.onclick = async () => { const M = await import('./plan.js'); if (b.dataset.oid) await M.record(b.dataset.oid, b.dataset.pid, b.dataset.bdout); else await logTouch({ pid: b.dataset.pid, o: b.dataset.bdout, src: 'Big Deals' }); bigView(el); });
   $$('[data-copy]', el).forEach(b => b.onclick = () => { navigator.clipboard?.writeText(b.closest('.bdscr').querySelector('p').textContent).then(() => toast('Script copied')); });
 }
 function card(r) {
@@ -73,6 +78,8 @@ function card(r) {
     <div class="xs" style="margin-top:4px">Owner: ${p.ownerId ? `<a href="#/owner/${p.ownerId}">${esc(nc(name))}</a>` : esc(nc(name))}</div>
     <ul class="xs" style="margin:6px 0 6px 18px;padding:0">${r.hits.flatMap(([s, list]) => list.map(([t, u]) => `<li>${esc(t)}${u ? ` · <a href="${u}" target="_blank" rel="noopener">source</a>` : ''}</li>`)).join('')}
       ${A['County assessor'] ? `<li>Property record: <a href="${A['County assessor']}" target="_blank" rel="noopener">county assessor</a>${A['Recorder of deeds'] ? ` · <a href="${A['Recorder of deeds']}" target="_blank" rel="noopener">deeds</a>` : ''}</li>` : ''}</ul>
+    ${touchHTML({ oid: p.ownerId, name, addr: val(p, 'address'), city: val(p, 'city') })}
     <div class="btnrow">${ph ? `<a class="btn primary" href="tel:${esc(ph.replace(/[^\d+]/g, ''))}">Call</a>` : `<a class="btn primary" href="#/owner/${p.ownerId || ''}">Find phone</a>`}<button class="btn" data-scr>Call script</button>
+    <div class="outs" style="flex-basis:100%">${[['na', 'No answer'], ['talked', 'Talked'], ['int', 'Interested'], ['no', 'Pass']].map(([k, l]) => `<button class="outb o-${k}" data-bdout="${k}" data-oid="${esc(p.ownerId || '')}" data-pid="${esc(p.id)}">${l}</button>`).join('')}</div>
     <div class="bdscr" hidden style="flex-basis:100%"><p class="sm" style="background:var(--panel2,#f5f6f8);padding:10px;border-radius:10px">${esc(s0[4](nc(first), addr))}</p><button class="btn sm ghost" data-copy>Copy</button></div></div></div>`;
 }

@@ -10,6 +10,7 @@ import { likelyBuyers, qualify } from './buyers.js';
 import { x1031Buyers, nc } from './extras.js';
 import { pathHTML, targetsHTML, guardHTML, overdueHTML, scorecardHTML, bigDealLeads, bigCardHTML, bindMoney, dnc, inTerritory, chip, takeHomeValue } from './money.js';
 import * as RC from './reach.js';
+import { logTouch, touchHTML, contactBox, bindContactBox } from './ledger.js';
 import { pitchLine, autopilot, draftBtns, buyerAlertsHTML, estateListHTML, driveRoute, driveHTML } from './edge.js';
 
 const GOV = /\b(CITY OF|VILLAGE OF|TOWN OF|COUNTY|STATE OF|UNITED STATES|USA|DISTRICT|AUTHORITY|SCHOOL|UNIVERSITY|COLLEGE|PARK DIST|FOREST PRESERVE|RAILROAD|RAILWAY|METRA|CTA|COMMONWEALTH EDISON|COMED|NICOR|HOUSING|CHURCH|DIOCESE|ARCHDIOCESE)\b/;
@@ -48,26 +49,28 @@ function candidates() {
 }
 function buyerBonus(c) {
   const mm = activeMatchMap().get(c.p.id); if (mm && mm.length) return [20, `matches your buyer “${mm[0].req.name}”`];
-  const lb = likelyBuyers(c.p, 3).map(x => ({ x, q: qualify(x.b) })).find(y => y.q.grade !== 'C' && !GOV.test(String(y.x.b.name).toUpperCase())); if (lb) return [15, `active buyer ${lb.x.b.name} (grade ${lb.q.grade}) buys this size here`];
+  const LB = likelyBuyers(c.p, 5).map(x => ({ x, q: qualify(x.b) })).filter(y => y.q.grade !== 'C' && !GOV.test(String(y.x.b.name).toUpperCase())), lb = LB.find(y => !y.x.inst) || LB[0]; if (lb) return [lb.x.inst ? 8 : 15, `${lb.x.inst ? 'institutional buyer' : 'local buyer'} ${lb.x.b.name} (grade ${lb.q.grade}) buys this size here`];
   const v = c.value; const x = x1031Buyers().find(e => e.d180 > 0 && e.props.some(z => z.p.co === c.p.co) && v && v >= e.total * .4 && v <= e.total * 1.6); if (x) return [10, `1031 buyer ${nc(x.seller)} must buy by ${x.c180}`];
   return null;
 }
 // Money-first ranking: estimated take-home x odds, scaled down for mega properties a newer broker rarely wins off a cold call.
-export const moneyRank = (value, r) => takeHomeValue(+value || 0) * Math.max(.03, Math.min(.5, (+r || 0) / 200)) * Math.min(1, Math.sqrt(15e6 / Math.max(1, +value || 1)));
+export const moneyRank = (value, r) => takeHomeValue(+value || 0) * Math.max(.03, Math.min(.5, (+r || 0) / 200)) * Math.min(1, 15e6 / Math.max(1, +value || 1));   // above $15M, size stops adding rank: a newer broker rarely wins those off a cold call
 // ---------- daily plan: 10 owners, no repeats within 14 days ----------
 export function dailyPlan() {
   const t = today(), cur = setting('plan', null);
-  const pick = cur && cur.d === t && cur.v === 4 ? cur.ids : null;
+  const pick = cur && cur.d === t && cur.v === 7 ? cur.ids : null;
   const all = candidates(), byId = new Map(all.map(c => [c.o.id, c]));
   let rows;
   if (pick) rows = pick.map(id => byId.get(id)).filter(Boolean);
   else {
     const hist = setting('planHist', {}) || {}, outc = setting('outc', {}) || {};
     const ok = c => { const h = hist[c.o.id]; if (h && daysBetween(h, t) < 14) return false; const last = (outc[c.o.id] || [])[0]; return !(last && last.o === 'no' && daysBetween(last.d, t) < 180); };
-    const pool = all.filter(c => ok(c) && !(c.value > 30e6)).slice(0, 150).map(c => { const b = buyerBonus(c), r = c.s + (b ? b[0] : 0); return { ...c, b, r, ex: moneyRank(c.value, r) }; }).sort((a, b) => b.ex - a.ex).slice(0, 10);
+    const ranked = all.filter(c => ok(c) && !(c.value > 30e6)).slice(0, 500).map(c => { const b = buyerBonus(c), r = c.s + (b ? b[0] : 0); return { ...c, b, r, ex: moneyRank(c.value, r) }; }).sort((a, b) => b.ex - a.ex);
+    // mix: at most 5 trophy buildings ($8M+) a day; the rest are $2M to $12M deals that close faster
+    const pool = []; let bigN = 0; for (const c of ranked) { const bg = c.value > 8e6; if (bg && bigN >= 5) continue; if (bg) bigN++; pool.push(c); if (pool.length >= 10) break; }
     rows = pool; const h2 = { ...hist }; pool.forEach(c => h2[c.o.id] = t);
     for (const k of Object.keys(h2)) if (daysBetween(h2[k], t) > 30) delete h2[k];
-    setSetting('planHist', h2); setSetting('plan', { d: t, v: 4, ids: pool.map(c => c.o.id) });
+    setSetting('planHist', h2); setSetting('plan', { d: t, v: 7, ids: pool.map(c => c.o.id) });
   }
   return rows.map(c => c.b === undefined ? { ...c, b: buyerBonus(c) } : c);
 }
@@ -77,9 +80,10 @@ const script = c => (setting('script', SCRIPT_DEF) || SCRIPT_DEF).replace('{addr
 // ---------- follow-ups due ----------
 export const dueList = () => { const t = today(); return [...S.followups.values()].filter(f => !f.done && f.due && f.due <= t).sort((a, b) => a.due.localeCompare(b.due)); };
 export const dueCount = () => dueList().length;
-async function record(oid, pid, code) {
+export async function record(oid, pid, code) {
   const t = today(), all = { ...(setting('outc', {}) || {}) }; all[oid] = [{ d: t, o: code, pid }, ...(all[oid] || [])].slice(0, 20); await setSetting('outc', all);
   const label = OUTCOMES.find(x => x[0] === code)[1];
+  try { const rp = window.__resiPin && window.__resiPin[oid]; await logTouch({ oid: oid.startsWith('r:') ? '' : oid, pid, name: rp ? rp.own : '', addr: rp ? rp.a : '', city: rp ? rp.city : '', o: code, src: 'Today' }); } catch (e) { /* ledger optional */ }
   try { await addActivity({ ownerId: oid, propertyId: pid, type: 'Call', outcome: label, note: 'Call plan: ' + label, date: t }); } catch (e) { /* activity log optional */ }
   for (const f of [...S.followups.values()].filter(f => !f.done && f.ownerId === oid && f.due <= t)) { f.done = true; f.doneTs = Date.now(); await save('followups', f); }
   const days = ['talked', 'no'].includes(code) ? 0 : fuDays()[code]; let msg = label;
@@ -101,7 +105,7 @@ async function addTag(oid, pid, t) {
   const y = (t.match(/\b(20\d\d)\b/) || [])[1]; if (y) { const due = addDays(`${y}-01-01`, -60); if (due > today()) { await addFollowup({ ownerId: oid, propertyId: pid, due, note: `Timeframe tag "${t}": call 60 days before` }); toast(`Tagged · call scheduled ${due}`); return; } }
   toast('Tagged');
 }
-const lastOut = oid => { const x = ((setting('outc', {}) || {})[oid] || [])[0]; return x ? `<span class="lastout">Last: ${esc(OUTCOMES.find(o => o[0] === x.o)?.[1] || x.o)} ${esc(x.d)}</span>` : ''; };
+const lastOut = oid => touchHTML({ oid }) || ''; // one ledger for every screen (ledger.js)
 // ---------- pipeline & earnings ----------
 export function earnings() {
   const D = setting('deals', []) || [], y = today().slice(0, 4), c = d => (+d.value || 0) * (+d.comm || 0) / 100 * (+d.split || 100) / 100;
@@ -141,9 +145,10 @@ function feedHTML() {
 }
 // ---------- view ----------
 export async function planView(el, sub) {
-  await RC.loadPhones(); const RH = await import('./rhythm.js'); const RS = await import('./resi.js'), rba = await RC.resiBuyerAlertsHTML().catch(() => ''), resi = await RS.resiCalls().catch(() => []);
+  await RC.loadPhones(); try { const D = await import('./dnc.js'); await D.dncLoad(); window.__isDNC = D.isDNC; } catch (e) { /* optional */ }
+  const BR = await import('./buyerrep.js'), brN = await BR.buyerRepCount(); const RH = await import('./rhythm.js'); const RS = await import('./resi.js'), rba = await RC.resiBuyerAlertsHTML().catch(() => ''), resi = await RS.resiCalls().catch(() => []);
   const rows = dailyPlan().slice(0, 10 - resi.length), due = dueList(), t = today();
-  const more = (oid, pid, extra = '') => `<details class="pc-sc pc-more"><summary>More</summary>${extra}${outMore(oid, pid)}${tagRow(oid, pid)}${RC.notesBox(oid, pid)}${RC.portfolioBtn(oid)}<a class="xs" target="_blank" rel="noopener" href="${esc(RC.SOS)}">Who runs the LLC (IL Secretary of State)</a></details>`;
+  const more = (oid, pid, extra = '') => `<details class="pc-sc pc-more"><summary>More</summary>${extra}${outMore(oid, pid)}${tagRow(oid, pid)}${RC.notesBox(oid, pid)}${contactBox(oid)}${RC.portfolioBtn(oid)}</details>`;
   const card = (c, i) => `<div class="pcall"><div class="pc-top"><span class="pc-n">${i + 1}</span><div class="pc-who"><a href="#/owner/${esc(c.o.id)}"><b>${esc(nc(c.o.name))}</b></a><a class="xs" href="#/property/${esc(c.p.id)}">${esc(nc(val(c.p, 'address') || ''))}, ${esc(nc(val(c.p, 'city') || ''))}</a></div>${RC.callBtn(c.o, c.p)}</div>${RC.memTop(c.o.id)}
     <div class="pc-chip">${chip(c.value)}</div><div class="pc-why">${esc(reason(c))}${c.p.tdel && c.p.co === 'Cook' ? ` <a class="xs" target="_blank" rel="noopener" href="${esc(taxStatusUrl(c.p))}">Check taxes now</a>` : ''}</div>${rollup(c.o.id)}${lastOut(c.o.id)}
     ${outBtns(c.o.id, c.p.id)}${more(c.o.id, c.p.id, `<p class="pc-script"><b>What to say:</b> ${esc(script(c))}</p>`)}</div>`;
@@ -154,7 +159,7 @@ export async function planView(el, sub) {
     ${overdueHTML()}${pathHTML(true)}${due.length ? `<h2 class="plan-h">Call back today <span class="cnt">${due.length}</span></h2>${due.slice(0, 15).map(dueCard).join('')}` : ''}
     <div class="ch" style="margin-top:14px"><h2 class="plan-h" style="margin:0">${big90 ? '90-Day Big Deal calls' : 'Your 10 calls'} · ${new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</h2><label class="fchip" style="min-height:44px"><input type="checkbox" id="big90" ${big90 ? 'checked' : ''}> 90-Day Big Deal</label></div>
     ${big90 ? (bigL.length ? bigL.map(bigCardHTML).join('') : '<div class="muted">No leads meet the 90-Day rules (take-home and a deadline trigger). Lower the minimum in Deals settings or widen your territory.</div>') : (rows.length || resi.length) ? rows.map(card).join('') + resi.map((x, i) => RS.resiCardHTML(x, rows.length + i + 1, outBtns)).join('') : '<div class="muted">No owners with strong sell signals in your territory right now.</div>'}
-    <details class="card fold" style="padding:10px;margin-top:14px"><summary><b>Fastest money</b> <span class="xs muted">buyers waiting, estates, keep 5 deals alive</span></summary>${guardHTML()}${buyerAlertsHTML()}${rba}${estateListHTML()}<a class="btn" href="#/big" style="display:block;text-align:center;margin-top:8px">Big Deals ›</a></details>
+    <details class="card fold" style="padding:10px;margin-top:14px"><summary><b>Fastest money</b> ${brN ? `<span class="cnt">${brN}</span>` : ''}<span class="xs muted">buyer-rep deals, buyers waiting, estates</span></summary><h2 class="plan-h" style="margin-top:6px">Buyer-rep deals <a class="xs" href="#/buyerrep">all ›</a></h2><div id="brx"></div>${guardHTML()}${buyerAlertsHTML()}${rba}${estateListHTML()}<a class="btn" href="#/big" style="display:block;text-align:center;margin-top:8px">Big Deals ›</a></details>
     <details class="card fold" style="padding:10px;margin-top:10px"><summary><b>This week</b> <span class="xs muted">scorecard, target deals, inbound${new Date().getDay() === 5 ? ', Friday summary' : ''}</span></summary>${scorecardHTML()}${targetsHTML()}${RS.speedHTML()}${new Date().getDay() === 5 ? RH.winHTML() : ''}<div id="prosx"></div></details>
     <details class="card fold" style="padding:10px;margin-top:10px"><summary><b>More for today</b> <span class="xs muted">drive day, record changes, your files, more lead types</span></summary>
     <button class="btn primary" id="drive" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">Plan a drive day</button><div id="driveout"></div>
@@ -177,5 +182,6 @@ export async function planView(el, sub) {
   $$('[data-fud]', el).forEach(i => i.onchange = () => { const v = { ...(setting('fuDays', {}) || {}) }; v[i.dataset.fud] = +i.value || FU_DEF[i.dataset.fud]; setSetting('fuDays', v); });
   import('./batch3.js').then(M => { const x = $('#prosx', el); if (x) { x.innerHTML = M.prosDueHTML(); M.bindPros(x, re); } }); RH.bindWin(el); RS.bindResi(el, re); RC.bindNotes(el, re); RC.bindPortfolio(el); RS.bindBuyers(el, re);
   $$('[data-rs]', el).forEach(d => d.addEventListener('toggle', async () => { if (!d.open || d.dataset.done) return; d.dataset.done = 1; const b = d.querySelector('.rsbody'); b.innerHTML = await ({ jsold: RS.justSoldHTML, rbuy: RS.buyersHTML, inv: RS.investorsHTML })[d.dataset.rs](); RS.bindBuyers(b, re); }));
-  bindMoney(el, re); $('#big90', el).onchange = async e => { await setSetting('big90', e.target.checked); re(); };
+  BR.buyerRepHTML(5).then(h => { const x = $('#brx', el); if (x) { x.innerHTML = h; BR.bindBuyerRep(x, re); } });
+  bindContactBox(el, re); bindMoney(el, re); $('#big90', el).onchange = async e => { await setSetting('big90', e.target.checked); re(); };
 }

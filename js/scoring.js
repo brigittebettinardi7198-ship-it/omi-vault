@@ -1,4 +1,4 @@
-import { tdelFactor } from './util.js';
+import { tdelFactor, addDays, normName } from './util.js';
 import { leaseFlag, leaseTxt, appealPoint } from './adv.js';
 import { S, val, setting, ownerProps, propLeases, ownerFollowups, idx, CLOSED_STAGES, MOTIVATIONS } from './store.js';
 import { today, daysBetween, addMonths } from './util.js';
@@ -266,6 +266,49 @@ export function possibleBuyers(limit = 20) {
 }
 
 // ---- Deal size (big deals first). Values are labeled by where they come from. ----
+// ---------- value model: assessor value x county sale ratio, nearby recorded sales, assessor income model ----------
+const CELL = (lat, lon) => Math.floor(lat / 0.03) + '|' + Math.floor(lon / 0.04);
+const miles = (a, b, c, d) => { const r = Math.PI / 180, x = (d - b) * r * Math.cos((a + c) / 2 * r), y = (c - a) * r; return Math.sqrt(x * x + y * y) * 3959; };
+export const median = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+let VIDX = { v: -1 };
+function valueIndex() {
+  if (VIDX.v === S.version) return VIDX;
+  const g = new Map(), ratios = {}, cut = addDays(today(), -3 * 365), seen = new Set();
+  for (const p of S.props) {
+    if (p.vac || p.office || !p.lat) continue;
+    const sp = +val(p, 'lastSalePrice') || 0, sd = String(val(p, 'lastSaleDate') || ''), sf = sfOf(p).sf;
+    if (sp < 150000 || sd < cut || /quit/i.test(val(p, 'deedType') || '')) continue;
+    const mv = !p.mvest && (+val(p, 'marketValue') || 0); if (mv > 50000 && sp / mv > .2 && sp / mv < 6) (ratios[p.co] || (ratios[p.co] = [])).push(sp / mv);
+    if (!sf || sf < 2000) continue; const psf = sp / sf; if (psf < 15 || psf > 600) continue;
+    const dup = sd + '|' + Math.round(sp) + '|' + normName(val(p, 'lastBuyer') || val(p, 'taxpayer')); if (seen.has(dup)) continue; seen.add(dup);   // a multi-PIN sale counts once
+    const k = CELL(p.lat, p.lon); (g.get(k) || g.set(k, []).get(k)).push({ p, psf, sp, sd, sf });
+  }
+  const ratio = {}; for (const co in ratios) if (ratios[co].length >= 20) ratio[co] = Math.min(1.6, Math.max(.8, median(ratios[co])));
+  VIDX = { v: S.version, g, ratio }; return VIDX;
+}
+// Recorded building sales within 3 miles, last 3 years, one-third to three times this building's size, nearest first
+export function compsFor(p, n = 6) {
+  if (!p.lat || p.vac) return [];
+  const { g } = valueIndex(), sf = sfOf(p).sf, ky = Math.floor(p.lat / 0.03), kx = Math.floor(p.lon / 0.04), out = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const c of g.get((ky + dy) + '|' + (kx + dx)) || []) {
+    if (c.p.id === p.id || (p.ownerId && c.p.ownerId === p.ownerId)) continue; const mi = miles(p.lat, p.lon, c.p.lat, c.p.lon); if (mi > 3) continue;
+    if (sf && (c.sf < sf / 3 || c.sf > sf * 3)) continue; out.push({ ...c, mi });
+  }
+  return out.sort((a, b) => a.mi - b.mi).slice(0, n);
+}
+export const saleRatio = co => valueIndex().ratio[co] || 1.2;   // recorded price / assessor market value, county median (industrial trades above assessor values)
+function modelValue(p, sf, av) {
+  const ratio = saleRatio(p.co), comps = compsFor(p), inputs = [];
+  if (av > 20000) inputs.push({ l: `${p.mvest ? 'Assessed' : 'Assessor'} value ${kmoneyS(av)} × ${ratio.toFixed(2)} county sale ratio`, v: av * ratio, w: p.mvest ? 1 : 2 });
+  if (comps.length >= 3) { const m = median(comps.map(c => c.psf)); inputs.push({ l: `${comps.length} nearby sales, median $${Math.round(m)}/SF`, v: m * sf, w: 2 }); }
+  if (p.cval && +p.cval.mvsf) inputs.push({ l: `Assessor income model $${p.cval.mvsf}/SF × ${ratio.toFixed(2)}`, v: p.cval.mvsf * sf * ratio, w: 1 });
+  if (!inputs.length) return null;
+  // weighted median: the assessor anchor keeps one odd comp from running away with the number
+  const ex = inputs.flatMap(i => Array(i.w).fill(i.v)); let value = median(ex);
+  if (av > 20000) { const a = av * ratio, lo = a * (p.mvest ? .4 : .5), hi = a * (p.mvest ? 3 : 2.5); value = Math.min(hi, Math.max(lo, value)); }
+  return { value, inputs, comps, lo: Math.min(...inputs.map(i => i.v)), hi: Math.max(...inputs.map(i => i.v)) };
+}
+const kmoneyS = n => '$' + (n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : Math.round(n / 1000) + 'K');
 export function dealInfo(p) {
   const sf0 = +val(p, 'bldgSf') || 0, lsf = +val(p, 'landSf') || 0, acres = lsf / 43560, fp = +p.est_bldg_sf || 0;
   // Sanity: Cook often repeats a whole complex's SF on one PIN. If assessor SF is far above the measured roof footprint, value on 2x footprint and flag it.
@@ -275,16 +318,19 @@ export function dealInfo(p) {
   let value = +val(p, 'askingPrice'), kind = 'asking price';
   const brokerVal = p.ed && +p.ed.marketValue;
   if (!value && brokerVal) { value = brokerVal; kind = 'your entered value'; }
+  let model = null;
   if (!value) {
     const av = +val(p, 'marketValue') || 0, est = sf ? sf * setting('psfBldg', 100) : lsf * setting('psfLand', 8);
-    if (av >= est && av) { value = av; kind = p.mvest ? 'est. from assessed value' : 'assessor market value'; }
+    model = sf && !p.vac ? modelValue(p, sf, av) : null;
+    if (model) { value = Math.round(model.value); kind = model.inputs.length > 1 ? `est. from ${model.inputs.length} sources` : model.inputs[0].l; }
+    else if (av >= est && av) { value = av; kind = p.mvest ? 'est. from assessed value' : 'assessor market value'; }
     else if (est) { value = av ? Math.min(est, av * 1.5) : est; kind = value < est ? 'est. ($/SF, held to 1.5x assessor value)' : sf ? `est. at $${setting('psfBldg', 100)}/SF bldg` : `est. at $${setting('psfLand', 8)}/SF land`; }
   }
   const check = sfOut || value > setting('valCheck', 30000000);   // implausible for a quick solo deal: show "check size" instead of a dollar figure
   const commission = value ? value * setting('commRate', 3) / 100 : 0;
   const big = sf >= setting('bigSf', 50000) || acres >= setting('bigAcres', 5) || value >= setting('bigValue', 5000000);
   const size = Math.min(1, Math.max(sf / 200000, acres / 20, (value || 0) / 20000000));
-  return { sf, acres, value, kind, commission, big, size, check, sfOut };
+  return { sf, acres, value, kind, commission, big, size, check, sfOut, lo: model ? Math.round(model.lo) : value, hi: model ? Math.round(model.hi) : value, inputs: model ? model.inputs : [], comps: model ? model.comps : [] };
 }
 let dcache = { v: -1, m: new Map() };
 // Building SF for matching/filtering: official assessor SF when present, else the roof-footprint estimate (est_bldg_sf, source: footprint)

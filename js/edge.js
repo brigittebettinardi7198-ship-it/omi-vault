@@ -24,7 +24,7 @@ export function taxShock(p) {
 }
 export function pitchLine(p) {
   const v = valuePitch(p), t = taxShock(p), out = [];
-  if (v) out.push(`You bought it for about ${kmoney(v.sp)} in ${v.yr}; it's likely worth around ${kmoney(v.value)} today, roughly ${kmoney(v.eq)} of gain before any loans (my estimate).`);
+  if (v) { const d = deal(p), rng = d.inputs && d.inputs.length > 1 && d.hi > d.lo * 1.15 ? `somewhere between ${kmoney(d.lo)} and ${kmoney(d.hi)}, likely around ${kmoney(v.value)}` : `around ${kmoney(v.value)}`; out.push(`You bought it for about ${kmoney(v.sp)} in ${v.yr}; based on nearby sales it's worth ${rng} today, roughly ${kmoney(v.eq)} of gain before any loans (my estimate).`); }
   if (t) out.push(`Your assessment went up about ${t.pct}%, which could mean roughly ${kmoney(t.up)} more in property tax a year (estimate).`);
   return out.join(' ');
 }
@@ -42,8 +42,9 @@ function estateHTML(p) {
 }
 export function propertyEdgeHTML(p) {
   const v = valuePitch(p), t = taxShock(p), comps = p.lat ? nearbySales(p, 3) : [], est = estateHTML(p);
-  if (!v && !t && !comps.length && !est) return '';
-  return `<section class="card edge" style="margin:12px 0;padding:14px"><h2 style="margin:0 0 8px">Value pitch <span class="tag est">estimate</span></h2>
+  const d = deal(p), range = d.inputs && d.inputs.length ? `<div style="margin-bottom:8px">Likely value <b>${kmoney(d.lo)} to ${kmoney(d.hi)}</b>, best guess <b>${kmoney(d.value)}</b> <span class="xs muted">(${esc(d.kind)})</span><details class="xs" style="margin-top:4px"><summary>How this was figured</summary><ul style="margin:4px 0 0 16px;padding:0">${d.inputs.map(i => `<li>${esc(i.l)}: <b>${kmoney(i.v)}</b></li>`).join('')}${d.comps.length ? `<li>Comps used: ${d.comps.map(c => `<a href="#/property/${esc(c.p.id)}">${esc(nc(val(c.p, 'address') || ''))}</a> ${kmoney(c.sp)} ($${Math.round(c.psf)}/SF, ${c.sd.slice(0, 4)}, ${c.mi.toFixed(1)} mi)`).join('; ')}</li>` : ''}</ul></details></div>` : '';
+  if (!v && !t && !comps.length && !est && !range) return '';
+  return `<section class="card edge" style="margin:12px 0;padding:14px"><h2 style="margin:0 0 8px">Value pitch <span class="tag est">estimate</span></h2>${range}
     ${v ? `<div class="edge-big" style="font-size:17px">You bought for <b>${kmoney(v.sp)}</b> in ${esc(v.yr)}; it's worth about <b>${kmoney(v.value)}</b> today; that's <b class="pos">${kmoney(v.eq)}</b> of equity before any loans.</div><div class="xs muted">Estimate: last recorded sale vs. ${esc(v.kind)}. Not an appraisal.</div>` : ''}
     ${t ? `<div style="margin-top:8px">Tax shock: assessment up ${t.pct}% ≈ <b>${kmoney(t.up)}/yr</b> more property tax <span class="xs muted">(estimate: ${esc(t.basis)})</span></div>` : ''}
     ${comps.length ? `<div style="margin-top:10px"><b>3 closest recent sales</b>${comps.map(c => `<div class="xs">${c.pid ? `<a href="#/property/${esc(c.pid)}">${esc(nc(c.addr))}</a>` : esc(nc(c.addr))} · ${esc(c.d || '')} · ${kmoney(c.price)}${c.psf ? ` ($${Math.round(c.psf)}/SF)` : ''} · ${c.mi.toFixed(1)} mi</div>`).join('')}</div>` : ''}

@@ -366,7 +366,7 @@ const IC = {
   moon: 'M12 3a9 9 0 109 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0112.4 3.1 9 9 0 0012 3z',
 };
 const NAVG = [
-  ['Make money', [['today', 'Today', IC.today, 'due'], ['deals', 'Deals & money', IC.stats], ['big', 'Big Deals', IC.stack], ['referrals', 'Referrals', IC.buyer], ['today/import', 'Import CoStar / LoopNet / MLS', IC.tpl]]],
+  ['Make money', [['today', 'Today', IC.today, 'due'], ['buyerrep', 'Buyer-rep deals (fastest)', IC.buyer], ['deals', 'Deals & money', IC.stats], ['big', 'Big Deals', IC.stack], ['referrals', 'Referrals', IC.buyer], ['today/import', 'Import CoStar / LoopNet / MLS', IC.tpl]]],
   ['Work', [ ['stack', 'Stacked deals', IC.stack, 'stacked'], ['offmarket', 'Off-Market sellers', IC.off], ['prospect', 'Call list', IC.phone], ['crm', 'Follow-ups & activity', IC.fu, 'due'], ['templates', 'Templates & letters', IC.tpl]]],
   ['Properties', [['properties', 'Search properties', IC.search], ['ask', 'Ask (smart search)', IC.ask], ['near', 'Near me', IC.near], ['favs', 'Saved properties', IC.star], ['lists', 'Saved lists', IC.list], ['compare', 'Compare', IC.cmp]]],
   ['People', [['owners', 'Owners', IC.owner], ['requirements', 'Buyers & requirements', IC.buyer], ['companies', 'Tenants', IC.tenant], ['occupants', "Who's inside", IC.occ], ['slb', 'Sale-leasebacks', IC.slb, 'slb']]],

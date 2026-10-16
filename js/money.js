@@ -51,7 +51,7 @@ export function bigDealLeads() {
     if (+p.avchg >= 25) T.push({ t: `Assessment jumped ${Math.round(+p.avchg)}%`, d: null });
     if (!T.length || (T.length === 1 && T[0].weak)) continue;   // an old tax file alone is not a 90-day reason
     const dd = T.filter(t => t.d != null).map(t => t.d), days = dd.length ? Math.min(...dd) : null, urg = days == null ? 1 : Math.max(1, 1 + (90 - days) / 90), odds = Math.min(.9, .15 + scoreOf(p).score / 200 + T.length * .05);
-    out.push({ p, o, v, th, T, days, rank: th * odds * urg * Math.min(1, Math.sqrt(15e6 / v)), odds });
+    out.push({ p, o, v, th, T, days, rank: th * odds * urg * Math.min(1, 15e6 / v), odds });
   }
   out.sort((a, b) => b.rank - a.rank); BIG = { v: S.version, list: out.slice(0, 200) }; return BIG.list;
 }
