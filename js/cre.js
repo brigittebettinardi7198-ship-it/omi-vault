@@ -84,3 +84,7 @@ export async function justSold() {
 // ---- 3.5 investor buyers (2-6 unit buyers, last 3 yrs) ----
 export async function investorBuyers() { const recent = (await get('recent')) || [], g = new Map(); for (const r of recent) if (isMulti(r.c) && r.b) { const k = norm(r.b); const e = g.get(k) || { name: r.b, n: 0, last: '' }; e.n++; if (r.d > e.last) e.last = r.d; g.set(k, e); }
   return [...g.values()].filter(e => e.n >= 2).sort((a, b) => b.n - a.n).slice(0, 25).map(e => ({ ...e, grade: e.n >= 5 ? 'A' : e.n >= 3 ? 'B' : 'C' })); }
+// ---- 4.3 CMA helpers ----
+export async function creParcel(pin) { const L = await get('parcels'); return L ? L.find(p => p.pin === pin) || null : null; }
+export async function compsNear(p, n = 6) { const L = (await get('parcels')) || [], recent = (await get('recent')) || [], byPin = new Map(L.map(x => [x.pin, x])), since = addDays(today(), -540), grp = isMulti(p.c);
+  return recent.filter(r => r.d >= since && r.pin !== p.pin && RESI.includes(r.c) === RESI.includes(p.c) && isMulti(r.c) === grp).map(r => ({ r, x: byPin.get(r.pin) })).filter(c => c.x && c.x.lat && p.lat).map(c => ({ ...c, d: mi(p, c.x) })).filter(c => c.d <= 1.5).sort((a, b) => a.d - b.d).slice(0, n); }

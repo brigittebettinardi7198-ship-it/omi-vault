@@ -8,6 +8,7 @@ import { vacancyOf } from './sheets.js';
 import { likelyBuyers, qualify } from './buyers.js';
 import { x1031Buyers, nc } from './extras.js';
 import { pathHTML, targetsHTML, guardHTML, overdueHTML, scorecardHTML, bigDealLeads, bigCardHTML, bindMoney, dnc, inTerritory } from './money.js';
+import * as RC from './reach.js';
 import { pitchLine, autopilot, draftBtns, buyerAlertsHTML, estateListHTML, driveRoute, driveHTML } from './edge.js';
 
 const GOV = /\b(CITY OF|VILLAGE OF|TOWN OF|COUNTY|STATE OF|UNITED STATES|USA|DISTRICT|AUTHORITY|SCHOOL|UNIVERSITY|COLLEGE|PARK DIST|FOREST PRESERVE|RAILROAD|RAILWAY|METRA|CTA|COMMONWEALTH EDISON|COMED|NICOR|HOUSING|CHURCH|DIOCESE|ARCHDIOCESE)\b/;
@@ -84,7 +85,7 @@ async function record(oid, pid, code) {
   toast(msg);
 }
 const outBtns = (oid, pid) => `<div class="outs">${OUTCOMES.map(([k, l]) => `<button class="outb o-${k}" data-out="${k}" data-oid="${esc(oid)}" data-pid="${esc(pid || '')}">${l}</button>`).join('')}</div>`;
-const NY = new Date().getFullYear() + 1, TAGS = [`maybe ${NY}`, 'wants $…', 'partner decides', 'hates brokers', '+ custom'];
+const NY = new Date().getFullYear() + 1, TAGS = [`maybe ${NY}`, 'wants $…', 'partner decides', 'hates brokers', 'has another building', 'owns a business', '+ custom'];
 const rtags = oid => ((setting('rtags', {}) || {})[oid] || []);
 const tagRow = (oid, pid) => `<div class="rtags xs" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${rtags(oid).map(t => `<span class="tag" style="background:#e0e7ff">${esc(t.t)}</span>`).join('')}${TAGS.map(t => `<button class="fchip" style="min-height:30px" data-rtag="${esc(t)}" data-oid="${esc(oid)}" data-pid="${esc(pid || '')}">${esc(t)}</button>`).join('')}</div>`;
 async function addTag(oid, pid, t) {
@@ -134,11 +135,11 @@ function feedHTML() {
 }
 // ---------- view ----------
 export async function planView(el, sub) {
-  const RS = await import('./resi.js'), resi = await RS.resiCalls().catch(() => []);
+  await RC.loadPhones(); const RS = await import('./resi.js'), rba = await RC.resiBuyerAlertsHTML().catch(() => ''), resi = await RS.resiCalls().catch(() => []);
   const rows = dailyPlan().slice(0, 10 - resi.length), due = dueList(), t = today();
-  const card = (c, i) => `<div class="pcall"><div class="pc-top"><span class="pc-n">${i + 1}</span><div class="pc-who"><a href="#/owner/${esc(c.o.id)}"><b>${esc(nc(c.o.name))}</b></a><a class="xs" href="#/property/${esc(c.p.id)}">${esc(nc(val(c.p, 'address') || ''))}, ${esc(nc(val(c.p, 'city') || ''))}</a></div><button class="bact primary pc-call" data-call="o:${esc(c.o.id)}">Call</button></div>
-    <div class="pc-why">${esc(reason(c))}</div>${rollup(c.o.id)}${lastOut(c.o.id)}
-    <details class="pc-sc"><summary>Script</summary><p>${esc(script(c))}</p></details>${outBtns(c.o.id, c.p.id)}${tagRow(c.o.id, c.p.id)}</div>`;
+  const card = (c, i) => `<div class="pcall"><div class="pc-top"><span class="pc-n">${i + 1}</span><div class="pc-who"><a href="#/owner/${esc(c.o.id)}"><b>${esc(nc(c.o.name))}</b></a><a class="xs" href="#/property/${esc(c.p.id)}">${esc(nc(val(c.p, 'address') || ''))}, ${esc(nc(val(c.p, 'city') || ''))}</a></div>${RC.callBtn(c.o, c.p)}</div>${RC.memTop(c.o.id)}
+    <div class="pc-why">${esc(reason(c))}</div>${rollup(c.o.id)}${RC.portfolioBtn(c.o.id)}${lastOut(c.o.id)}
+    <details class="pc-sc"><summary>Script</summary><p>${esc(script(c))}</p></details>${outBtns(c.o.id, c.p.id)}${tagRow(c.o.id, c.p.id)}${RC.notesBox(c.o.id, c.p.id)}</div>`;
   const dueCard = f => { const o = S.owners.get(f.ownerId), p = f.propertyId && S.prop.get(f.propertyId); return `<div class="pcall due"><div class="pc-top"><span class="pc-n">!</span><div class="pc-who">${o ? `<a href="#/owner/${esc(o.id)}"><b>${esc(nc(o.name))}</b></a>` : '<b>Follow-up</b>'}${p ? `<a class="xs" href="#/property/${esc(p.id)}">${esc(nc(val(p, 'address') || ''))}</a>` : ''}</div>${o ? `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">Call</button>` : ''}</div><div class="pc-why">${esc(f.note || 'Follow-up')} · due ${esc(f.due)}${f.due < t ? ' (overdue)' : ''}</div>${draftBtns(f)}${o ? outBtns(o.id, f.propertyId) + tagRow(o.id, f.propertyId) : ''}</div>`; };
   const fd = fuDays();
   const big90 = !!setting('big90', false), bigL = big90 ? bigDealLeads().slice(0, 10) : [];
@@ -148,7 +149,7 @@ export async function planView(el, sub) {
     <div class="ch" style="margin-top:14px"><h2 class="plan-h" style="margin:0">${big90 ? '90-Day Big Deal calls' : 'Your 10 calls'} · ${new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</h2><label class="fchip" style="min-height:44px"><input type="checkbox" id="big90" ${big90 ? 'checked' : ''}> 90-Day Big Deal</label></div>
     ${big90 ? (bigL.length ? bigL.map(bigCardHTML).join('') : '<div class="muted">No leads meet the 90-Day rules (take-home and a deadline trigger). Lower the minimum in Deals settings or widen your territory.</div>') : (rows.length || resi.length) ? rows.map(card).join('') + resi.map((x, i) => RS.resiCardHTML(x, rows.length + i + 1, outBtns)).join('') : '<div class="muted">No owners with strong sell signals in your territory right now.</div>'}
     ${scorecardHTML()}
-    <h2 class="plan-h">Fastest money</h2>${buyerAlertsHTML()}${estateListHTML()}<div class="xs muted"><a href="#/big">Big Deals ›</a></div>
+    <h2 class="plan-h">Fastest money</h2>${buyerAlertsHTML()}${rba}${estateListHTML()}<div class="xs muted"><a href="#/big">Big Deals ›</a></div>
     <details class="card" style="padding:10px;margin-top:12px"><summary><b>More for today</b> <span class="xs muted">drive day, record changes, your files, more lead types</span></summary>
     <button class="btn primary" id="drive" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">Plan a drive day</button><div id="driveout"></div>
     ${feedHTML()}
@@ -168,7 +169,7 @@ export async function planView(el, sub) {
   $('#drive').onclick = () => { const r = driveRoute(candidates().slice(0, 80)); $('#driveout').innerHTML = `<section class="card" style="padding:12px;margin-bottom:10px"><h2 style="margin:0">Drive day</h2>${driveHTML(r)}</section>`; };
   $('#scr').onchange = e => setSetting('script', e.target.value || SCRIPT_DEF);
   $$('[data-fud]', el).forEach(i => i.onchange = () => { const v = { ...(setting('fuDays', {}) || {}) }; v[i.dataset.fud] = +i.value || FU_DEF[i.dataset.fud]; setSetting('fuDays', v); });
-  RS.bindResi(el, re); RS.bindBuyers(el, re);
+  RS.bindResi(el, re); RC.bindNotes(el, re); RC.bindPortfolio(el); RS.bindBuyers(el, re);
   $$('[data-rs]', el).forEach(d => d.addEventListener('toggle', async () => { if (!d.open || d.dataset.done) return; d.dataset.done = 1; const b = d.querySelector('.rsbody'); b.innerHTML = await ({ jsold: RS.justSoldHTML, rbuy: RS.buyersHTML, inv: RS.investorsHTML })[d.dataset.rs](); RS.bindBuyers(b, re); }));
   bindMoney(el, re); $('#big90', el).onchange = async e => { await setSetting('big90', e.target.checked); re(); };
 }

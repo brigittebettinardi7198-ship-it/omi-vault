@@ -100,20 +100,21 @@ export function testPrice(p) {
     <div class="mfoot"><button class="btn" data-close>Close</button></div>`, m => bindCopy(m));
 }
 // ---------- 7. Paperwork (print-to-PDF draft templates) ----------
-const DOCS = [['listing', 'Listing agreement'], ['trep', 'Tenant rep agreement'], ['loip', 'LOI: purchase'], ['loil', 'LOI: lease'], ['reg', 'Commission registration letter']];
-export function paperworkHTML() { return `<div class="btnrow" style="flex-wrap:wrap">${DOCS.map(([k, l]) => `<button class="btn sm" data-doc="${k}">${l}</button>`).join('')}</div><div class="xs muted">Draft templates only: use your firm's approved forms and get attorney review.</div>`; }
+import { DOC_NAMES as DOCS, REAL_NOTE, docTpl, fillTpl, DOC_DEF } from './reach.js';
+export function paperworkHTML() { return `<div class="btnrow" style="flex-wrap:wrap">${DOCS.map(([k, l]) => `<button class="btn sm" data-doc="${k}">${l}</button>`).join('')}</div><div class="xs muted">${esc(REAL_NOTE)} Edit templates in Tools.</div>`; }
 export function bindPaperwork(root, p) { $$('[data-doc]', root).forEach(b => b.onclick = () => printDoc(b.dataset.doc, p)); }
 function printDoc(k, p) {
   const o = S.owners.get(p.ownerId) || {}, addr = `${nc(val(p, 'address') || '')}, ${nc(val(p, 'city') || '')}, IL ${val(p, 'zip') || ''}`, own = nc(o.name || val(p, 'taxpayer') || '________'), sf = sfOf(p).sf, d = deal(p), F = firm(), L = '__________';
-  const body = {
+  let body = {
     listing: `<p>Owner: <b>${esc(own)}</b> ("Owner") grants ${esc(F)} ("Broker") the exclusive right to ${'sell / lease'} the property at <b>${esc(addr)}</b> (PIN ${esc(p.pin || L)}${sf ? ', approx. ' + fmt(sf) + ' SF' : ''}).</p><p>Term: from ${L} to ${L}. List price: $${L}. Commission: ${L}% of gross sale price / ${L}% of aggregate lease value, earned on closing.</p><p>Protection period: ${L} days after expiration for prospects registered in writing.</p>`,
     trep: `<p>Client: ${L} ("Tenant") engages ${esc(F)} ("Broker") as exclusive tenant representative to locate industrial space of approx. ${L} SF in ${L} for a term of ${L}.</p><p>Term of agreement: ${L} to ${L}. Broker's fee is paid by the landlord where possible; otherwise ${L}.</p>`,
     loip: `<p>Re: <b>${esc(addr)}</b> (PIN ${esc(p.pin || L)})</p><p>Buyer: ${L}. Seller: ${esc(own)}. Purchase price: $${L}. Earnest money: $${L}. Due diligence: ${L} days. Closing: ${L} days after due diligence. Brokers: ${esc(F)}.</p><p>This letter is non-binding except for confidentiality.</p>`,
     loil: `<p>Re: <b>${esc(addr)}</b>${sf ? ' · approx. ' + fmt(sf) + ' SF' : ''}</p><p>Tenant: ${L}. Landlord: ${esc(own)}. Premises: ${L} SF. Term: ${L} months. Base rent: $${L}/SF/yr NNN, escalations ${L}%. Free rent: ${L}. TI: ${L}. Commencement: ${L}. Brokers: ${esc(F)}.</p><p>Non-binding.</p>`,
     reg: `<p>To: ${esc(own)}</p><p>${esc(F)} registers the following prospect(s) for <b>${esc(addr)}</b>: ${L}. Commission per separate agreement: ${L}%. Registration valid for ${L} days.</p>`,
   }[k];
+  const T = docTpl(k); if (T || !body) body = `<p>${fillTpl(T || '', { owner: own, address: addr, pin: p.pin || '', sf: sf ? fmt(sf) : '', firm: F, date: today() })}</p>`;
   const w = window.open('', '_blank'); if (!w) return toast('Allow pop-ups to print');
-  w.document.write(`<title>${esc(DOCS.find(x => x[0] === k)[1])}</title><body style="font:14px Georgia,serif;max-width:700px;margin:30px auto;line-height:1.6"><div style="border:2px solid #b91c1c;color:#b91c1c;padding:8px;font:bold 13px system-ui">DRAFT TEMPLATE: use your firm's approved forms / attorney review before signing.</div><h1 style="font-size:20px">${esc(DOCS.find(x => x[0] === k)[1])}</h1><p>Date: ${today()}</p>${body}<p style="margin-top:40px">______________________ &nbsp; Date ______<br>______________________ &nbsp; Date ______</p><script>print()<\/script></body>`); w.document.close();
+  w.document.write(`<title>${esc(DOCS.find(x => x[0] === k)[1])}</title><body style="font:14px Georgia,serif;max-width:700px;margin:30px auto;line-height:1.6"><div style="border:2px solid #b91c1c;color:#b91c1c;padding:8px;font:bold 13px system-ui">DRAFT TEMPLATE: ${esc(REAL_NOTE)}</div><h1 style="font-size:20px">${esc(DOCS.find(x => x[0] === k)[1])}</h1><p>Date: ${today()}</p>${body}<p style="margin-top:40px">______________________ &nbsp; Date ______<br>______________________ &nbsp; Date ______</p><script>print()<\/script></body>`); w.document.close();
 }
 // ---------- 2.8 Fleets outgrowing the yard (FMCSA power units at the address, snapshot per data refresh on this device) ----------
 const fleetNow = () => { const m = {}; for (const p of S.props) if (p.fm) for (const x of String(p.fm).matchAll(/\(USDOT (\d+), (\d+) power units\)/g)) m[x[1]] = { n: +x[2], pid: p.id }; return m; };
