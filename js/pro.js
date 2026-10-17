@@ -404,7 +404,7 @@ function bindNav() {
   sheet.querySelector('.pr-sheet-bd').onclick = close; sheet.addEventListener('click', e => { if (e.target.closest('a')) close(); });
   sheet.querySelector('.pn-theme').onclick = () => { window.__omiTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'); close(); };
   const more = document.querySelector('.mnav a[data-r="more"]');
-  if (more) { const svg = more.querySelector('svg'); more.textContent = ''; if (svg) more.appendChild(svg); more.append('Menu'); more.addEventListener('click', e => { e.preventDefault(); openSheet(); }); }
+  if (more) { const svg = more.querySelector('svg'); more.textContent = ''; if (svg) more.appendChild(svg); more.append('Tools'); more.addEventListener('click', e => { e.preventDefault(); openSheet(); }); }
   window.addEventListener('hashchange', () => { markActive(); });
   paintNav();
 }

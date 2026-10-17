@@ -97,7 +97,7 @@ const outBtns = (oid, pid) => OB(oid, pid, ['na', 'talked', 'int', 'no']);
 const outMore = (oid, pid) => OB(oid, pid, ['vm', 'mtg', 'prop'], 'outs outs2');
 const NY = new Date().getFullYear() + 1, TAGS = [`maybe ${NY}`, 'wants $…', 'partner decides', 'hates brokers', 'has another building', 'owns a business', '+ custom'];
 const rtags = oid => ((setting('rtags', {}) || {})[oid] || []);
-const tagRow = (oid, pid) => `<div class="rtags xs" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${rtags(oid).map(t => `<span class="tag" style="background:#e0e7ff">${esc(t.t)}</span>`).join('')}${TAGS.map(t => `<button class="fchip" style="min-height:30px" data-rtag="${esc(t)}" data-oid="${esc(oid)}" data-pid="${esc(pid || '')}">${esc(t)}</button>`).join('')}</div>`;
+const tagRow = (oid, pid) => `<details class="rtags pc-sc"><summary>Tags${rtags(oid).length ? ' (' + rtags(oid).length + ')' : ''}</summary><div class="xs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${TAGS.map(t => `<button class="fchip" style="min-height:30px" data-rtag="${esc(t)}" data-oid="${esc(oid)}" data-pid="${esc(pid || '')}">${esc(t)}</button>`).join('')}</div></details>`;
 async function addTag(oid, pid, t) {
   if (t === 'wants $…') { const v = prompt('What price do they want? (e.g. 4.5M)'); if (!v) return; t = 'wants $' + v.replace(/^\$/, ''); }
   if (t === '+ custom') { t = prompt('Tag (e.g. "maybe spring 2028", "son runs it")') || ''; if (!t) return; }

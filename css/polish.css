@@ -1,0 +1,70 @@
+[hidden]{display:none!important}
+/* UI polish layer (loaded last): one spacing scale, one accent, iOS-style type, calm cards, safe areas, dark mode. */
+:root{--acc:#0a66d8;--acc2:#0857b8;--acct:rgba(10,102,216,.10);--bg:#f2f3f7;--panel:#fff;--txt:#111418;--mut:#6b7280;--line:#e3e6eb;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--r:14px;--r2:10px;--shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
+  --f:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+[data-theme=dark]{--acc:#4c9bff;--acc2:#3a87ea;--acct:rgba(76,155,255,.15);--bg:#000;--panel:#1c1c1e;--panel2:#2c2c2e;--txt:#f2f2f7;--mut:#98989f;--line:#38383a;--chip:#2c2c2e;--shadow:none}
+html,body{font-family:var(--f);-webkit-font-smoothing:antialiased}
+@media (max-width:760px){
+  body{font-size:17px;line-height:1.4;background:var(--bg);color:var(--txt)}
+  #view{padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
+  .page{padding-left:var(--s4);padding-right:var(--s4)}
+  .mnav{padding-bottom:max(6px,env(safe-area-inset-bottom))!important;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px)}
+  .mnav a{min-height:50px}
+  h1{font-size:30px;font-weight:700;letter-spacing:-.02em;margin:var(--s2) 0 var(--s1)}
+  .explain{font-size:15px;color:var(--mut);margin:0 0 var(--s4)}
+  .plan-h{font-size:20px;font-weight:700;margin:var(--s5) 0 var(--s2);letter-spacing:-.01em}
+  .plan-h .cnt,.cnt{background:var(--chip,#eef0f3)!important;color:var(--mut)!important;font-weight:600}
+  .xs{font-size:13px}.muted,.xs.muted{color:var(--mut)}
+  /* cards */
+  .card,.pcall,section.card,.psec{background:var(--panel);border:0!important;border-radius:var(--r);box-shadow:var(--shadow)}
+  .pcall{padding:var(--s4);margin:0 0 var(--s3)}
+  .pcall.due{box-shadow:inset 3px 0 0 #e5484d,var(--shadow);background:var(--panel)}
+  .pc-top{flex-wrap:wrap;align-items:flex-start;gap:var(--s2) var(--s3)}
+  .pc-who{flex:1 1 calc(100% - 44px);min-width:0}.pc-who b{font-size:17px}.pc-who .xs,.pc-who span{display:block;color:var(--mut)}
+  .pc-n{width:26px;height:26px;font-size:13px;background:var(--acct);color:var(--acc)}
+  .pc-why{font-size:15px;color:var(--txt);margin:var(--s2) 0}
+  /* Call / Text: big, obvious, full width row under the name */
+  .pc-top>.pc-call:not([hidden]){order:9;flex:1 1 40%;min-height:48px;font-size:17px;border-radius:12px}
+  .bact.primary,.btn.primary{background:var(--acc)!important;border-color:var(--acc)!important;color:#fff!important}
+  .bact:not(.primary){background:var(--panel);color:var(--acc);border:1px solid var(--line)}
+  a[href^="tel:"].btn,a[href^="sms:"].btn{min-height:44px}
+  .btn,.fchip,.outb,.bact,summary{min-height:44px}
+  .btn.sm{min-height:44px;padding:0 14px}
+  .btn{border-radius:12px;font-weight:600}
+  .outs{gap:var(--s2);margin-top:var(--s2)}.outb{border-radius:22px;background:var(--panel);color:var(--txt);border:1px solid var(--line);font-size:15px}
+  .tag{border-radius:6px;font-weight:600}
+  details>summary{cursor:pointer;display:flex;align-items:center;gap:var(--s2)}
+  .pc-sc>summary,.feedmore>summary{color:var(--acc);font-weight:600;font-size:15px}
+  /* fewer colors per row */
+  .pcall .tag[style*="#e0e7ff"]{background:var(--chip,#eef0f3)!important;color:var(--mut)!important}
+  .rtags>summary{font-size:15px;color:var(--mut);font-weight:600}
+  /* property header */
+  .phead5 h1{font-size:26px}
+  .ph-act .btn.ghost{border:1px solid var(--line);background:var(--panel);color:var(--acc)}
+  .tiles4>div{border-radius:var(--r2)}
+  .dncbox{margin:var(--s2) 0!important;gap:var(--s2)}.dncbox .fchip{display:flex;align-items:center;gap:6px}
+  .psec>summary{padding:0 var(--s4);font-weight:700;font-size:17px}
+  .pfold{margin:0 0 var(--s3)}.pfold>summary{padding:0 var(--s4);font-weight:700;font-size:17px;min-height:54px}.pfold>section,.pfold>div{box-shadow:none!important;margin:0!important}
+  .empty,.muted:only-child{padding:var(--s3) 0}
+}
+/* dark mode: tame light inline backgrounds from older cards */
+[data-theme=dark] .pcall,[data-theme=dark] .card{color:var(--txt)}
+[data-theme=dark] [style*="background:#fee2e2"]{background:#3a1d1d!important;color:#ffd5d5}
+[data-theme=dark] [style*="background:#eff6ff"]{background:#14243b!important}
+[data-theme=dark] [style*="background:#f0fdf4"]{background:#12291c!important}
+[data-theme=dark] [style*="background:#fef9c3"],[data-theme=dark] [style*="background:#fef3c7"],[data-theme=dark] [style*="background:#fde68a"]{background:#3a3112!important;color:#ffe9a8!important}
+[data-theme=dark] [style*="background:#dcfce7"]{background:#12331f!important;color:#8ff0b4!important}
+[data-theme=dark] .outb,[data-theme=dark] .bact:not(.primary),[data-theme=dark] .fchip{background:var(--panel2);color:var(--txt);border-color:var(--line)}
+[data-theme=dark] .pc-why,[data-theme=dark] .pc-who b{color:var(--txt)}
+label.fchip{display:inline-flex!important;align-items:center;gap:8px;padding:0 14px;min-height:44px}
+label.fchip input{width:20px;height:20px;margin:0}
+/* calmer colored cards: white card with a thin accent stripe instead of a full tinted background */
+@media (max-width:760px){
+  :root:not([data-theme=dark]) .card[style*="background:#fef9c3"],:root:not([data-theme=dark]) .card[style*="background:#fef3c7"],:root:not([data-theme=dark]) section[style*="background:#fef9c3"]{background:var(--panel)!important;box-shadow:inset 3px 0 0 #f5a524,var(--shadow)!important}
+  :root:not([data-theme=dark]) .card[style*="background:#eff6ff"],:root:not([data-theme=dark]) .card[style*="background:#f0fdf4"]{background:var(--panel)!important;box-shadow:inset 3px 0 0 var(--acc),var(--shadow)!important}
+  .card[style*="border-color:#dc2626"]{box-shadow:inset 3px 0 0 #e5484d,var(--shadow)!important}
+}
+.earn{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.earn>div{display:flex;flex-direction:column;gap:2px;background:var(--panel2,#f6f7f9);border-radius:10px;padding:8px 10px}
+.earn>div>span{font-size:12px;color:var(--mut)}.earn>div>b{font-size:18px}
