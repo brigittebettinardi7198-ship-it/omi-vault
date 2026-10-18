@@ -61,9 +61,9 @@ export async function listsView(el, name) {
   if (name && L[name]) {
     const ps = L[name].ids.map(id => S.prop.get(id)).filter(Boolean).sort((a, b) => priorityOf(b) - priorityOf(a));
     el.innerHTML = `<div class="page wide"><div class="crumb"><a href="#/lists">Saved lists</a></div><div class="ph"><div><h1>${esc(name)}</h1><div class="muted">${ps.length} properties · created ${esc(L[name].created || '')}</div></div>
-      <div class="ph-act"><button class="btn" id="lcmp">Compare first 10</button><button class="btn" id="lcsv">Export CSV</button><button class="btn ghost" id="ldel">Delete list</button></div></div>
+      <div class="ph-act"><button class="btn" id="lcsv">Export CSV</button><button class="btn ghost" id="ldel">Delete list</button></div></div>
       <div class="tcards">${ps.map(p => `<a class="tcard" href="#/property/${p.id}"><span class="tc-n">${scorePill(scoreOf(p).score)}</span><div class="tc-main"><div class="tc-top"><b class="tc-name">${esc(nc(val(p, 'address') || p.pin))}</b></div><div class="tc-why">${esc([val(p, 'city'), p.co, val(p, 'taxpayer')].filter(Boolean).join(' · '))}</div></div><div class="tc-score"></div><div class="tc-val"><b>${kmoney(deal(p).value) || ''}</b><span class="xs muted">${fmt(deal(p).sf) ? fmt(deal(p).sf) + ' SF' : ''}</span></div><span class="tc-go">Open ▸</span></a>`).join('') || '<div class="pad muted">Empty list.</div>'}</div></div>`;
-    $('#lcmp').onclick = () => { localStorage.setItem(CMPK, JSON.stringify(ps.slice(0, 10).map(p => p.id))); cmpTray(); location.hash = '#/compare'; };
+    if ($('#lcmp')) $('#lcmp').onclick = () => { localStorage.setItem(CMPK, JSON.stringify(ps.slice(0, 10).map(p => p.id))); cmpTray(); location.hash = '#/compare'; };
     $('#lcsv').onclick = () => download(`list-${name.replace(/\W+/g, '-')}-${today()}.csv`, toCSV(ps.map(p => ({ address: val(p, 'address'), city: val(p, 'city'), county: p.co, pin: p.pin, owner: val(p, 'taxpayer'), score: scoreOf(p).score, priority: priorityOf(p), bldg_sf: deal(p).sf, acres: deal(p).acres.toFixed(2), est_value: Math.round(deal(p).value || 0) }))));
     $('#ldel').onclick = async () => { if (!confirm(`Delete the list "${name}"? The properties stay in the database.`)) return; const L2 = { ...lists() }; delete L2[name]; await saveLists(L2); location.hash = '#/lists'; };
     return;

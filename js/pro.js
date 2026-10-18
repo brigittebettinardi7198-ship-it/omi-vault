@@ -368,7 +368,7 @@ const IC = {
 const NAVG = [
   ['Make money', [['today', 'Today', IC.today, 'due'], ['deals', 'Deals & money', IC.stats], ['big', 'Big Deals', IC.stack], ['today/import', 'Import CoStar / LoopNet / MLS', IC.tpl]]],
   ['Work', [ ['stack', 'Stacked deals', IC.stack, 'stacked'], ['offmarket', 'Off-Market sellers', IC.off], ['prospect', 'Call list', IC.phone]]],
-  ['Properties', [['properties', 'Search properties', IC.search], ['ask', 'Ask (smart search)', IC.ask], ['near', 'Near me', IC.near], ['favs', 'Saved properties', IC.star], ['lists', 'Saved lists', IC.list], ['compare', 'Compare', IC.cmp]]],
+  ['Properties', [['properties', 'Search properties', IC.search], ['ask', 'Ask (smart search)', IC.ask], ['near', 'Near me', IC.near], ['favs', 'Saved properties', IC.star], ['lists', 'Saved lists', IC.list]]],
   ['People', [['owners', 'Owners', IC.owner], ['requirements', 'Buyers & requirements', IC.buyer], ['companies', 'Tenants', IC.tenant], ['occupants', "Who's inside", IC.occ], ['slb', 'Sale-leasebacks', IC.slb, 'slb']]],
   ['Market', [['leases', 'Lease tracker', IC.lease, 'lease12'], ['brief', 'Market brief', IC.brief], ['comps', 'Comps & listings', IC.comps]]],
   ['You', [['stats', 'Stats', IC.stats], ['tools', 'Settings & backup', IC.tools]]],
