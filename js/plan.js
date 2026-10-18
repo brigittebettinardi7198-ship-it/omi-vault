@@ -167,10 +167,7 @@ export async function planView(el, sub) {
     <h2 class="plan-h">Your CoStar / LoopNet / Crexi files <span class="xs muted">(private, this device only)</span></h2><button class="btn" id="impbtn" style="width:100%;margin-bottom:8px">Import CoStar / LoopNet / Crexi file</button><div id="impx"><div class="xs muted">Loading…</div></div>
     <div id="b3x"></div>
     ${[['jsold', 'Just sold near your owners (residential)'], ['rbuy', 'Residential buyer leads'], ['inv', 'Investor buyers (2-6 units)']].map(([k, l]) => `<details class="feedmore" data-rs="${k}"><summary><b>${l}</b></summary><div class="rsbody xs">Loading…</div></details>`).join('')}
-    <details class="card advset"><summary>Advanced: call script and follow-up timing</summary>
-      <label class="full">Script (use {address}, {city}, {hook}, {owner})<textarea id="scr" rows="3">${esc(setting('script', SCRIPT_DEF) || SCRIPT_DEF)}</textarea></label>
-      <div class="dl-f">${[['na', 'No answer'], ['vm', 'Left VM'], ['talked', 'Talked'], ['int', 'Interested']].map(([k, l]) => `<label>${l}: days<input data-fud="${k}" type="number" inputmode="numeric" value="${fd[k]}"></label>`).join('')}</div>
-      <div class="xs muted">Ranking: tax delinquency, SBA loan coming due (estimate), possible vacancy, WARN notices, 15+ year ownership and out-of-state owners, plus a bonus when your buyer, a grade A/B public buyer or a 1031 buyer fits. Large companies (12+ parcels or institutional) and government owners are left out. Nobody repeats within 14 days.</div></details>
+
     </details></div>`;
   const re = () => planView(el);
   $$('[data-out]', el).forEach(b => b.onclick = async () => { b.closest('.outs').querySelectorAll('button').forEach(x => x.disabled = true); await record(b.dataset.oid, b.dataset.pid, b.dataset.out); re(); });
@@ -178,7 +175,7 @@ export async function planView(el, sub) {
   $$('[data-rtag]', el).forEach(b => b.onclick = async () => { await addTag(b.dataset.oid, b.dataset.pid, b.dataset.rtag); re(); });
   import('./batch3.js').then(M => { const x = $('#b3x', el); if (x) { x.innerHTML = M.todayGroupHTML(); M.bindTodayGroup(x); } });
   $('#drive').onclick = () => { const r = driveRoute(candidates().slice(0, 80)); $('#driveout').innerHTML = `<section class="card" style="padding:12px;margin-bottom:10px"><h2 style="margin:0">Drive day</h2>${driveHTML(r)}</section>`; };
-  $('#scr').onchange = e => setSetting('script', e.target.value || SCRIPT_DEF);
+  if ($('#scr')) $('#scr').onchange = e => setSetting('script', e.target.value || SCRIPT_DEF);
   $$('[data-fud]', el).forEach(i => i.onchange = () => { const v = { ...(setting('fuDays', {}) || {}) }; v[i.dataset.fud] = +i.value || FU_DEF[i.dataset.fud]; setSetting('fuDays', v); });
   import('./batch3.js').then(M => { const x = $('#prosx', el); if (x) { x.innerHTML = M.prosDueHTML(); M.bindPros(x, re); } }); RH.bindWin(el); RS.bindResi(el, re); RC.bindNotes(el, re); RC.bindPortfolio(el); RS.bindBuyers(el, re);
   $$('[data-rs]', el).forEach(d => d.addEventListener('toggle', async () => { if (!d.open || d.dataset.done) return; d.dataset.done = 1; const b = d.querySelector('.rsbody'); b.innerHTML = await ({ jsold: RS.justSoldHTML, rbuy: RS.buyersHTML, inv: RS.investorsHTML })[d.dataset.rs](); RS.bindBuyers(b, re); }));

@@ -212,7 +212,7 @@ export async function stackView(el) {
 }
 
 // ---------- Command palette (Cmd/Ctrl + K) ----------
-const CMDS = [['Today', '#/today'], ['Stacked opportunities', '#/stack'], ['Off-Market', '#/offmarket'], ['Prospecting call list', '#/prospect'], ['Search properties', '#/properties'], ['Ask (smart search)', '#/ask'], ['Buyers & requirements', '#/requirements'], ['Owners', '#/owners'], ["Who's inside (tenants)", '#/occupants'], ['Sale-leaseback targets', '#/slb'], ['Leases', '#/leases'], ['Follow-ups', '#/crm'], ['Comps & listings', '#/comps'], ['Market brief', '#/brief'], ['Saved properties', '#/favs'], ['Saved lists', '#/lists'], ['Templates', '#/templates'], ['Tools & data', '#/tools']];
+const CMDS = [['Today', '#/today'], ['Stacked opportunities', '#/stack'], ['Off-Market', '#/offmarket'], ['Prospecting call list', '#/prospect'], ['Search properties', '#/properties'], ['Ask (smart search)', '#/ask'], ['Buyers & requirements', '#/requirements'], ['Owners', '#/owners'], ["Who's inside (tenants)", '#/occupants'], ['Sale-leaseback targets', '#/slb'], ['Leases', '#/leases'], ['Comps & listings', '#/comps'], ['Market brief', '#/brief'], ['Saved properties', '#/favs'], ['Saved lists', '#/lists'], ['Tools & data', '#/tools']];
 function palette() {
   if (document.querySelector('.pr-pal')) return;
   const ov = document.createElement('div'); ov.className = 'pr-pal'; ov.innerHTML = `<div class="pr-pal-box" role="dialog" aria-label="Command palette"><input placeholder="Jump to an address, owner, town or screen…" autocomplete="off"><div class="pr-pal-res"></div><div class="pr-pal-ft"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div></div>`;
@@ -367,7 +367,7 @@ const IC = {
 };
 const NAVG = [
   ['Make money', [['today', 'Today', IC.today, 'due'], ['buyerrep', 'Buyer-rep deals (fastest)', IC.buyer], ['deals', 'Deals & money', IC.stats], ['big', 'Big Deals', IC.stack], ['referrals', 'Referrals', IC.buyer], ['today/import', 'Import CoStar / LoopNet / MLS', IC.tpl]]],
-  ['Work', [ ['stack', 'Stacked deals', IC.stack, 'stacked'], ['offmarket', 'Off-Market sellers', IC.off], ['prospect', 'Call list', IC.phone], ['crm', 'Follow-ups & activity', IC.fu, 'due'], ['templates', 'Templates & letters', IC.tpl]]],
+  ['Work', [ ['stack', 'Stacked deals', IC.stack, 'stacked'], ['offmarket', 'Off-Market sellers', IC.off], ['prospect', 'Call list', IC.phone]]],
   ['Properties', [['properties', 'Search properties', IC.search], ['ask', 'Ask (smart search)', IC.ask], ['near', 'Near me', IC.near], ['favs', 'Saved properties', IC.star], ['lists', 'Saved lists', IC.list], ['compare', 'Compare', IC.cmp]]],
   ['People', [['owners', 'Owners', IC.owner], ['requirements', 'Buyers & requirements', IC.buyer], ['companies', 'Tenants', IC.tenant], ['occupants', "Who's inside", IC.occ], ['slb', 'Sale-leasebacks', IC.slb, 'slb']]],
   ['Market', [['leases', 'Lease tracker', IC.lease, 'lease12'], ['brief', 'Market brief', IC.brief], ['comps', 'Comps & listings', IC.comps]]],

@@ -59,7 +59,7 @@ export async function printCMA(pin) {
 export function printHTML(html) { const w = document.createElement('div'); w.id = 'printarea'; w.innerHTML = html; document.body.appendChild(w); document.body.classList.add('printing');
   const done = () => { document.body.classList.remove('printing'); w.remove(); window.removeEventListener('afterprint', done); }; window.addEventListener('afterprint', done); setTimeout(() => { window.print(); setTimeout(done, 1500); }, 50); }
 // ---- 4.6 editable paperwork templates (Tools) ----
-export const DOC_NAMES = [['listing', 'Listing agreement'], ['trep', 'Tenant rep agreement'], ['brepr', 'Buyer rep (residential)'], ['brepc', 'Buyer rep (commercial)'], ['loip', 'LOI: purchase'], ['loil', 'LOI: lease'], ['reg', 'Commission registration letter']];
+export const DOC_NAMES = [['listing', 'Listing agreement'], ['trep', 'Tenant rep agreement'], ['brepr', 'Buyer rep (residential)'], ['brepc', 'Buyer rep (commercial)'], ['loip', 'LOI: purchase'], ['loil', 'LOI: lease']];
 export const REAL_NOTE = 'Real Brokerage official forms take priority (ask John Boska or the Real transaction team). Use these only as drafts and get attorney review.';
 export const DOC_DEF = {
   brepr: 'Buyer: {blank} ("Buyer") engages {firm} ("Broker") as exclusive buyer representative to locate residential property in {blank} up to ${blank}.\nTerm: {date} to {blank}. Compensation: {blank}% of purchase price, paid by seller where offered, otherwise by Buyer.\nProtection period: {blank} days.',
