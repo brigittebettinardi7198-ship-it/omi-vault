@@ -76,7 +76,7 @@ export function pathHTML(compact) {
 // ---------- 1.9 My 10 target deals ----------
 export const targets = () => setting('targets', []) || [];
 export async function togglePin(pid) { let T = targets(); T = T.includes(pid) ? T.filter(x => x !== pid) : [...T, pid].slice(-10); await setSetting('targets', T); toast(T.includes(pid) ? 'Pinned to My 10 target deals' : 'Unpinned'); }
-export const pinBtn = pid => `<button class="btn sm" data-pin="${esc(pid)}">${targets().includes(pid) ? '★ Pinned target' : '☆ Pin as target'}</button>`;
+export const pinBtn = pid => `<button class="btn sm" data-pin="${esc(pid)}">${targets().includes(pid) ? '★ In my targets' : '☆ Add to targets'}</button>`;
 export function targetsHTML() { const T = targets().filter(id => S.prop.has(id)); if (!T.length) return ''; return `<section class="card" style="padding:12px;margin:8px 0"><h2 style="margin:0 0 4px">My 10 target deals <span class="cnt">${T.length}</span></h2>${T.map(id => { const p = S.prop.get(id), o = S.owners.get(p.ownerId); return `<div class="nbr"><div><a href="#/property/${esc(id)}"><b>${esc(nc(val(p, 'address') || p.pin))}</b></a><div class="xs muted">${esc(nc(o ? o.name : val(p, 'taxpayer') || ''))} ${chip(deal(p).value)}</div></div>${dnc(o) ? '<span class="tag">DNC</span>' : `<button class="btn sm" data-call="${esc(id)}">Call</button>`}</div>`; }).join('')}</section>`; }
 // ---------- 1.4 live-deal guard ----------
 export function guardHTML() {
@@ -88,7 +88,7 @@ export async function addDealFor(pid, stage = 'Lead') { const p = S.prop.get(pid
 // ---------- 1.6 deal-killer dates ----------
 const KD = [['dd', 'Due diligence ends'], ['fin', 'Financing deadline'], ['appr', 'Appraisal'], ['close', 'Closing']];
 export function overdueHTML() { const t = today(), L = []; for (const d of deals()) if (d.stage === 'Under contract') for (const [k, l] of KD) if (d[k] && d[k] < t && !(d.done || {})[k]) L.push([d, l, d[k]]);
-  return L.length ? `<div class="card" style="background:#fee2e2;border-color:#dc2626;padding:12px;margin:8px 0"><b style="color:#b91c1c">Overdue deal deadlines</b>${L.map(([d, l, x]) => `<div class="xs"><a href="#/deals">${esc(d.name)}</a>: ${esc(l)} was ${esc(x)}</div>`).join('')}</div>` : ''; }
+  return L.length ? `<div class="card calmnote" style="padding:12px;margin:8px 0"><b>Overdue deal deadlines</b>${L.map(([d, l, x]) => `<div class="xs"><a href="#/deals">${esc(d.name)}</a>: ${esc(l)} was ${esc(x)}</div>`).join('')}</div>` : ''; }
 // ---------- 1.5 commission protection ----------
 const CHK = [['agr', 'Signed listing or tenant/buyer rep agreement'], ['terms', 'Commission terms in writing'], ['cobk', 'Co-broker split agreed'], ['reg', 'Registration letter sent'], ['real', 'Transaction submitted to Real']];
 // ---------- 1.8 weekly scorecard ----------

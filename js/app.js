@@ -29,7 +29,6 @@ const NAV = [
   ['slb', 'Sale-leaseback targets', 'M4 10h16v10H4zM12 3l9 6H3z'],
   ['favs', 'Saved properties (★)', 'M12 17.3l-6.18 3.7 1.64-7.03L2 9.24l7.19-.61L12 2l2.81 6.63 7.19.61-5.46 4.73 1.64 7.03z'],
   ['lists', 'Saved lists', 'M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z'],
-  ['templates', 'Templates', 'M14 2H6a2 2 0 00-2 2v16c0 1.1.9 2 2 2h12a2 2 0 002-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z'],
   ['tools', 'Tools & Data', 'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z'],
 ];
 const MORE_D = 'M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z';
@@ -69,7 +68,7 @@ function bindSearch() {
 }
 async function route() {
   const [r, id] = (location.hash.replace(/^#\/?/, '') || 'today').split('/');
-  if (r === 'crm' || r === 'templates') { location.replace('#/today'); return; }   // follow-up log and templates/letters screens removed from the UI (data kept)
+  if (['crm', 'templates', 'buyerrep', 'referrals'].includes(r)) { location.replace('#/today'); return; }   // removed from the UI on request (data kept)
   const sec = SECTION[r] || (r ? 'more' : 'today'); $$('[data-r]').forEach(a => a.classList.toggle('on', a.dataset.r === sec));
   for (const k of ['__omiMap', '__omiMini']) if (window[k]) { try { window[k].remove(); } catch (e) {} window[k] = null; }   // release Leaflet maps between screens (memory)
   document.querySelectorAll('.modal').forEach(m => m.remove());

@@ -146,7 +146,7 @@ function feedHTML() {
 // ---------- view ----------
 export async function planView(el, sub) {
   await RC.loadPhones(); try { const D = await import('./dnc.js'); await D.dncLoad(); window.__isDNC = D.isDNC; } catch (e) { /* optional */ }
-  const BR = await import('./buyerrep.js'), brN = await BR.buyerRepCount(); const RH = await import('./rhythm.js'); const RS = await import('./resi.js'), rba = await RC.resiBuyerAlertsHTML().catch(() => ''), resi = await RS.resiCalls().catch(() => []);
+  const RH = await import('./rhythm.js'); const RS = await import('./resi.js'), rba = await RC.resiBuyerAlertsHTML().catch(() => ''), resi = await RS.resiCalls().catch(() => []);
   const rows = dailyPlan().slice(0, 10 - resi.length), due = dueList(), t = today();
   const more = (oid, pid, extra = '') => `<details class="pc-sc pc-more"><summary>More</summary>${extra}${outMore(oid, pid)}${tagRow(oid, pid)}${RC.notesBox(oid, pid)}${contactBox(oid)}${RC.portfolioBtn(oid)}</details>`;
   const card = (c, i) => `<div class="pcall"><div class="pc-top"><span class="pc-n">${i + 1}</span><div class="pc-who"><a href="#/owner/${esc(c.o.id)}"><b>${esc(nc(c.o.name))}</b></a><a class="xs" href="#/property/${esc(c.p.id)}">${esc(nc(val(c.p, 'address') || ''))}, ${esc(nc(val(c.p, 'city') || ''))}</a></div>${RC.callBtn(c.o, c.p)}</div>${RC.memTop(c.o.id)}
@@ -157,10 +157,10 @@ export async function planView(el, sub) {
   const big90 = !!setting('big90', false), bigL = big90 ? bigDealLeads().slice(0, 10) : [];
   el.innerHTML = `<div class="page plan"><div class="hello"><h1>Today</h1></div>
     ${overdueHTML()}${pathHTML(true)}${due.length ? `<h2 class="plan-h">Call back today <span class="cnt">${due.length}</span></h2>${due.slice(0, 15).map(dueCard).join('')}` : ''}
-    <div class="ch" style="margin-top:14px"><h2 class="plan-h" style="margin:0">${big90 ? '90-Day Big Deal calls' : 'Your 10 calls'} · ${new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</h2><label class="fchip" style="min-height:44px"><input type="checkbox" id="big90" ${big90 ? 'checked' : ''}> 90-Day Big Deal</label></div>
+    <div class="ch" style="margin-top:14px"><h2 class="plan-h" style="margin:0">${big90 ? '90-Day Big Deal calls' : 'Your 10 calls'} · ${new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</h2><label class="fchip" style="min-height:44px"><input type="checkbox" id="big90" ${big90 ? 'checked' : ''}> Big deals only</label></div>
     ${big90 ? (bigL.length ? bigL.map(bigCardHTML).join('') : '<div class="muted">No leads meet the 90-Day rules (take-home and a deadline trigger). Lower the minimum in Deals settings or widen your territory.</div>') : (rows.length || resi.length) ? rows.map(card).join('') + resi.map((x, i) => RS.resiCardHTML(x, rows.length + i + 1, outBtns)).join('') : '<div class="muted">No owners with strong sell signals in your territory right now.</div>'}
-    <details class="card fold" style="padding:10px;margin-top:14px"><summary><b>Fastest money</b> ${brN ? `<span class="cnt">${brN}</span>` : ''}<span class="xs muted">buyer-rep deals, buyers waiting, estates</span></summary><h2 class="plan-h" style="margin-top:6px">Buyer-rep deals <a class="xs" href="#/buyerrep">all ›</a></h2><div id="brx"></div>${guardHTML()}${buyerAlertsHTML()}${rba}${estateListHTML()}<a class="btn" href="#/big" style="display:block;text-align:center;margin-top:8px">Big Deals ›</a></details>
-    <details class="card fold" style="padding:10px;margin-top:10px"><summary><b>This week</b> <span class="xs muted">scorecard, target deals, inbound${new Date().getDay() === 5 ? ', Friday summary' : ''}</span></summary>${scorecardHTML()}${targetsHTML()}${RS.speedHTML()}${new Date().getDay() === 5 ? RH.winHTML() : ''}<div id="prosx"></div></details>
+    <details class="card fold" style="padding:10px;margin-top:14px"><summary><b>Fastest money</b><span class="xs muted">buyers waiting, estates</span></summary>${guardHTML()}${buyerAlertsHTML()}${rba}${estateListHTML()}<a class="btn" href="#/big" style="display:block;text-align:center;margin-top:8px">Big Deals ›</a></details>
+    <details class="card fold" style="padding:10px;margin-top:10px"><summary><b>This week</b> <span class="xs muted">scorecard, target deals, inbound${new Date().getDay() === 5 ? ', Friday summary' : ''}</span></summary>${scorecardHTML()}${targetsHTML()}${RS.speedHTML()}${new Date().getDay() === 5 ? RH.winHTML() : ''}</details>
     <details class="card fold" style="padding:10px;margin-top:10px"><summary><b>More for today</b> <span class="xs muted">drive day, record changes, your files, more lead types</span></summary>
     <button class="btn primary" id="drive" style="width:100%;padding:14px;font-size:16px;margin:6px 0 10px">Plan a drive day</button><div id="driveout"></div>
     ${feedHTML()}
@@ -170,7 +170,9 @@ export async function planView(el, sub) {
 
     </details></div>`;
   const re = () => planView(el);
-  $$('[data-out]', el).forEach(b => b.onclick = async () => { b.closest('.outs').querySelectorAll('button').forEach(x => x.disabled = true); await record(b.dataset.oid, b.dataset.pid, b.dataset.out); re(); });
+  $$('[data-out]', el).forEach(b => b.onclick = async () => { b.closest('.outs').querySelectorAll('button').forEach(x => x.disabled = true); const C = [...el.querySelectorAll('.pcall')], idx = C.indexOf(b.closest('.pcall')); await record(b.dataset.oid, b.dataset.pid, b.dataset.out); await re();
+    // clear next step: jump to the next call card
+    const N = [...el.querySelectorAll('.pcall')][idx + 1]; if (N) { N.classList.add('pc-next'); N.scrollIntoView({ block: 'start', behavior: 'smooth' }); const nm = N.querySelector('.pc-who b'); if (nm) toast('Saved. Next: ' + nm.textContent); setTimeout(() => N.classList.remove('pc-next'), 2500); } });
   import('./costar.js').then(async M => { const x = $('#impx', el); if (!x) return; x.innerHTML = await M.todayHTML(); M.bindToday(x, re); $('#impbtn', el).onclick = () => M.importModal(re); if (sub === 'import') M.importModal(re); });
   $$('[data-rtag]', el).forEach(b => b.onclick = async () => { await addTag(b.dataset.oid, b.dataset.pid, b.dataset.rtag); re(); });
   import('./batch3.js').then(M => { const x = $('#b3x', el); if (x) { x.innerHTML = M.todayGroupHTML(); M.bindTodayGroup(x); } });
@@ -179,6 +181,5 @@ export async function planView(el, sub) {
   $$('[data-fud]', el).forEach(i => i.onchange = () => { const v = { ...(setting('fuDays', {}) || {}) }; v[i.dataset.fud] = +i.value || FU_DEF[i.dataset.fud]; setSetting('fuDays', v); });
   import('./batch3.js').then(M => { const x = $('#prosx', el); if (x) { x.innerHTML = M.prosDueHTML(); M.bindPros(x, re); } }); RH.bindWin(el); RS.bindResi(el, re); RC.bindNotes(el, re); RC.bindPortfolio(el); RS.bindBuyers(el, re);
   $$('[data-rs]', el).forEach(d => d.addEventListener('toggle', async () => { if (!d.open || d.dataset.done) return; d.dataset.done = 1; const b = d.querySelector('.rsbody'); b.innerHTML = await ({ jsold: RS.justSoldHTML, rbuy: RS.buyersHTML, inv: RS.investorsHTML })[d.dataset.rs](); RS.bindBuyers(b, re); }));
-  BR.buyerRepHTML(5).then(h => { const x = $('#brx', el); if (x) { x.innerHTML = h; BR.bindBuyerRep(x, re); } });
   bindContactBox(el, re); bindMoney(el, re); $('#big90', el).onchange = async e => { await setSetting('big90', e.target.checked); re(); };
 }

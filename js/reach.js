@@ -23,7 +23,7 @@ export function callBtn(o, p) {
   const ph = PH && p && PH.get(na(val(p, 'address')));
   if (ph) return `<a class="bact primary pc-call" href="tel:${esc(dig(ph.t))}" title="${esc(ph.src)} phone (your import)">☎ ${esc(first(ph.n) || first(o && o.name) || 'Call')}</a>`;
   let has = !!(o && o.phone); if (!has) for (const q of ownerProps(o.id)) if ((q.bph || []).length) { has = true; break; }
-  if (has) return `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">☎ ${o.phone ? esc(first(o.contactName || o.name) || 'Call') : 'Business'}</button>`;
+  if (has) return `<button class="bact primary pc-call" data-call="o:${esc(o.id)}">☎ ${o.phone ? esc(first(o.contactName || o.name) || 'Call') : 'Call business'}</button>`;
   return findLinks(o.name, val(p, 'city'));
 }
 export function resiCallBtn(x) { const ph = PH && PH.get(na(x.p.a)); if (ph && window.__isDNC && window.__isDNC(ph.t)) return `<span class="bact pc-call" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;font-size:13px" title="This number is on the National Do Not Call Registry. Mail or door-knock instead.">On DNC list</span>`; return ph ? `<a class="bact primary pc-call" href="tel:${esc(dig(ph.t))}">☎ ${esc(first(ph.n) || first(x.p.own) || 'Call')}</a>` : findLinks(x.p.own, x.p.mc || x.p.city); }
@@ -59,7 +59,7 @@ export async function printCMA(pin) {
 export function printHTML(html) { const w = document.createElement('div'); w.id = 'printarea'; w.innerHTML = html; document.body.appendChild(w); document.body.classList.add('printing');
   const done = () => { document.body.classList.remove('printing'); w.remove(); window.removeEventListener('afterprint', done); }; window.addEventListener('afterprint', done); setTimeout(() => { window.print(); setTimeout(done, 1500); }, 50); }
 // ---- 4.6 editable paperwork templates (Tools) ----
-export const DOC_NAMES = [['listing', 'Listing agreement'], ['trep', 'Tenant rep agreement'], ['brepr', 'Buyer rep (residential)'], ['brepc', 'Buyer rep (commercial)'], ['loip', 'LOI: purchase'], ['loil', 'LOI: lease']];
+export const DOC_NAMES = [['listing', 'Listing agreement'], ['trep', 'Tenant rep agreement'], ['loip', 'LOI: purchase'], ['loil', 'LOI: lease']];
 export const REAL_NOTE = 'Real Brokerage official forms take priority (ask John Boska or the Real transaction team). Use these only as drafts and get attorney review.';
 export const DOC_DEF = {
   brepr: 'Buyer: {blank} ("Buyer") engages {firm} ("Broker") as exclusive buyer representative to locate residential property in {blank} up to ${blank}.\nTerm: {date} to {blank}. Compensation: {blank}% of purchase price, paid by seller where offered, otherwise by Buyer.\nProtection period: {blank} days.',

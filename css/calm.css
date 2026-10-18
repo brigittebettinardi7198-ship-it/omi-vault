@@ -1,0 +1,30 @@
+/* Calm pass: no alarm red, neutral or soft blue for anything time-based, softer banners, more room. */
+:root{--calm:#5b8def;--calmbg:rgba(91,141,239,.10)}
+[data-theme=dark]{--calm:#7aa5ff;--calmbg:rgba(122,165,255,.14)}
+.tbadge,.mnav .tbadge,.side .tbadge,.pr-nav .tbadge{display:none!important}
+.plan-h .cnt,.cnt,.pn-badge,.pr-badge{background:none!important;color:var(--mut)!important}
+@media (max-width:760px){
+  .pcall{padding:14px 16px!important}
+  .plan-h{margin-top:32px!important}
+  .card,section.card{margin-bottom:16px}
+  .pcall.due .pc-who b::before{background:var(--calm)!important}
+  .pc-n{color:var(--mut)!important}
+}
+.pcall.due{border-color:transparent!important;background:var(--panel)!important}
+.card[style*="#dc2626"],.card[style*="#fee2e2"],.card[style*="#fca5a5"]{background:var(--panel)!important;border-color:var(--line)!important;box-shadow:inset 2px 0 0 var(--calm)!important}
+.card[style*="#dc2626"] b[style*="color"],.calmnote b{color:var(--txt)!important}
+.calmnote{background:var(--panel)!important;box-shadow:inset 2px 0 0 var(--calm)!important}
+.tag[style*="#dc2626"],.tag[style*="#fee2e2"],.tag[style*="background:#dc2626"]{background:var(--calmbg)!important;color:var(--calm)!important;padding:2px 7px!important}
+.tag[style*="fef3c7"],.tag[style*="fde68a"]{color:var(--mut)!important}
+#bkbanner,.bkbanner{border-color:var(--line)!important;background:var(--panel)!important;box-shadow:none!important}
+.outb.o-no{color:var(--txt)!important;border-color:var(--line)!important}
+.neg,.pos.neg{color:var(--mut)!important}
+.gbar i{background:var(--calm)!important}
+#bkbanner>*{border-color:var(--line)!important;background:var(--panel)!important}
+/* UX pass: readable at arm's length, clear next step, visible sort */
+.pcall{scroll-margin-top:72px}
+.pcall.pc-next{outline:3px solid var(--calm,#4a7bd0);outline-offset:2px;transition:outline-color .4s}
+.pcall .pc-who b{font-size:1.12rem}
+.outs .outb{min-height:48px;font-size:1rem;font-weight:600}
+.psort{min-height:44px;font-size:.95rem;padding:0 10px;border-radius:10px;border:1px solid var(--line,#d5d9e0);background:var(--card,#fff);color:inherit;max-width:100%}
+@media (max-width:600px){body{font-size:16.5px}.pbar2{flex-wrap:wrap}.pbar2 .psort{flex:1 1 100%}}

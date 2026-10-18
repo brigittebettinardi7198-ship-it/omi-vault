@@ -87,7 +87,7 @@ export async function occView(el) {
 }
 export async function slbView(el) {
   const T = slbTargets();
-  el.innerHTML = `<div class="page"><div class="ph"><div><h1>Sale-leaseback targets</h1><p class="explain">Owner-users (the business inside owns the building) with long ownership, older buildings or individual/trust/estate owners: candidates to sell and lease back to free up cash.</p><div class="muted">${fmt(T.length)} owner-user properties ranked. Owner-user = owner name matches a business at the address, or an SBA 504 borrower there.</div></div><div class="ph-act"><a class="btn" href="#/templates">Sale-leaseback letter template</a></div></div><div id="st"></div></div>`;
+  el.innerHTML = `<div class="page"><div class="ph"><div><h1>Sale-leaseback targets</h1><p class="explain">Owner-users (the business inside owns the building) with long ownership, older buildings or individual/trust/estate owners: candidates to sell and lease back to free up cash.</p><div class="muted">${fmt(T.length)} owner-user properties ranked. Owner-user = owner name matches a business at the address, or an SBA 504 borrower there.</div></div></div><div id="st"></div></div>`;
   table($('#st', el), T, [
     { k: 's', l: 'Rank', h: x => `<b>${x.s}</b>`, v: x => x.s },
     { k: 'a', l: 'Property', h: x => `<a href="#/property/${x.p.id}">${esc(nc(val(x.p, 'address') || x.p.pin))}</a><div class="xs muted">${esc(nc(val(x.p, 'city') || ''))} · ${esc(nc(ownerName(x.p)))}</div>`, v: x => val(x.p, 'address') },

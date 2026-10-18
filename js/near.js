@@ -74,7 +74,7 @@ export function nearView(el) {
 // Favorites tab: starred properties (saved on this device; tap ★ again to remove)
 export function favView(el) {
   const L = favIds().map(id => S.prop.get(id)).filter(Boolean).map(p => ({ p, d: null, s: scoreOf(p).score }));
-  el.innerHTML = `<div class="page favpg"><div class="ph"><div><h1>★ Favorites</h1><div class="muted">${L.length} starred propert${L.length === 1 ? 'y' : 'ies'}, saved on this device (included in backup). Tap ★ to remove.</div></div>${L.length ? '<div class="ph-act"><button class="btn" id="favlet">Print letters & labels</button></div>' : ''}</div>
+  el.innerHTML = `<div class="page favpg"><div class="ph"><div><h1>★ Favorites</h1><div class="muted">${L.length} starred propert${L.length === 1 ? 'y' : 'ies'}, saved on this device (included in backup). Tap ★ to remove.</div></div>${L.length ? '<div class="ph-act"></div>' : ''}</div>
     ${L.length ? `<div class="nm-list">${L.map(card).join('')}</div>` : '<div class="empty muted">No favorites yet. Tap ☆ on any property, list row, map popup or Prospect card.</div>'}</div>`;
   const fl = el.querySelector('#favlet'); if (fl) fl.onclick = () => import('./adv.js').then(M => M.printLetters(L.map(x => x.p)));
 }
